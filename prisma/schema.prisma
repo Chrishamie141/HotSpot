@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  OWNER
+  ADMIN
+}
+
+enum CrowdLabel {
+  DEAD
+  SLOW
+  ACTIVE
+  HOT
+  PACKED
+}
+
+enum ConfidenceLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id                String          @id @default(cuid())
+  email             String          @unique
+  displayName       String?
+  role              UserRole        @default(USER)
+  reputationScore   Int             @default(50)
+  homeNeighborhood  String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  liveUpdates       LiveUpdate[]
+  favoriteVenues    FavoriteVenue[]
+  ownerClaims       OwnerClaim[]
+  reportFlags       ReportFlag[]
+  auditLogs         AuditLog[]
+}
+
+model Venue {
+  id                    String              @id @default(cuid())
+  googlePlaceId         String              @unique
+  name                  String
+  type                  String
+  neighborhood          String
+  address               String
+  latitude              Float
+  longitude             Float
+  phone                 String?
+  website               String?
+  rating                Float?
+  reviewCount           Int                 @default(0)
+  openNow               Boolean             @default(false)
+  ageLimit              String?
+  vibeSummary           String?
+  lineStatus            String?             @default("no line")
+  coverTonight          Int?
+  liveCrowdLabel        CrowdLabel          @default(SLOW)
+  liveConfidence        ConfidenceLevel     @default(LOW)
+  comparedToUsual       String?             @default("normal")
+  lastUpdatedAt         DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  photos                VenuePhoto[]
+  tags                  VenueTag[]
+  events                VenueEvent[]
+  dressCode             VenueDressCode?
+  coverRules            VenueCoverRule[]
+  liveUpdates           LiveUpdate[]
+  buzzScoreSnapshots    BuzzScoreSnapshot[]
+  favorites             FavoriteVenue[]
+  claims                OwnerClaim[]
+}
+
+model VenuePhoto {
+  id        String   @id @default(cuid())
+  venueId   String
+  imageUrl  String
+  caption   String?
+  createdAt DateTime @default(now())
+  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+}
+
+model VenueTag {
+  id        String   @id @default(cuid())
+  venueId   String
+  tag       String
+  createdAt DateTime @default(now())
+  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+}
+
+model VenueEvent {
+  id          String   @id @default(cuid())
+  venueId     String
+  title       String
+  description String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  flyerUrl    String?
+  createdAt   DateTime @default(now())
+  venue       Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+}
+
+model VenueDressCode {
+  id             String   @id @default(cuid())
+  venueId        String   @unique
+  strictness     String
+  policySummary  String
+  updatedByOwner Boolean  @default(false)
+  updatedAt      DateTime @default(now())
+  venue          Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+}
+
+model VenueCoverRule {
+  id            String   @id @default(cuid())
+  venueId       String
+  dayOfWeek     Int
+  coverAmount   Int
+  notes         String?
+  updatedByOwner Boolean @default(false)
+  createdAt     DateTime @default(now())
+  venue         Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+}
+
+model LiveUpdate {
+  id               String    @id @default(cuid())
+  venueId          String
+  userId           String
+  crowdLabel       CrowdLabel
+  lineStatus       String
+  coverAmount      Int?
+  dressStrictness  String?
+  vibeNotes        String?
+  trustWeight      Float     @default(1)
+  proximityMeters  Int?
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+  flagged          Boolean   @default(false)
+  venue            Venue     @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BuzzScoreSnapshot {
+  id               String          @id @default(cuid())
+  venueId          String
+  score            Int
+  crowdLabel       CrowdLabel
+  confidence       ConfidenceLevel
+  comparedToUsual  String
+  lineEstimate     String
+  summaryReason    String
+  signalPayload    Json
+  capturedAt       DateTime        @default(now())
+  venue            Venue           @relation(fields: [venueId], references: [id], onDelete: Cascade)
+}
+
+model FavoriteVenue {
+  id        String   @id @default(cuid())
+  userId    String
+  venueId   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, venueId])
+}
+
+model OwnerClaim {
+  id         String   @id @default(cuid())
+  userId     String
+  venueId    String
+  status     String   @default("pending")
+  evidenceUrl String?
+  createdAt  DateTime @default(now())
+  reviewedAt DateTime?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  venue      Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+}
+
+model NeighborhoodTrend {
+  id               String   @id @default(cuid())
+  neighborhood     String
+  trendScore       Int
+  dominantVibe     String
+  topVenueIds      String[]
+  capturedAt       DateTime @default(now())
+}
+
+model ReportFlag {
+  id            String   @id @default(cuid())
+  liveUpdateId  String
+  reporterId    String
+  reason        String
+  createdAt     DateTime @default(now())
+  reporter      User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String
+  entityType  String
+  entityId    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
