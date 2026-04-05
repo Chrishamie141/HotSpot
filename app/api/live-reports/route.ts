@@ -8,6 +8,7 @@ const schema = z.object({
   address: z.string().default(""),
   lat: z.number().default(0),
   lng: z.number().default(0),
+  venueId: z.string(),
   userId: z.string(),
   crowdLabel: z.enum(["DEAD", "SLOW", "ACTIVE", "HOT", "PACKED"]),
   lineStatus: z.enum(["no line", "short", "medium", "long"]),
@@ -51,6 +52,9 @@ export async function POST(req: Request) {
       dressStrictness: payload.data.dressStrictness,
       vibeNotes: payload.data.vibeNotes,
       proximityMeters: payload.data.proximityMeters,
+  const report = await prisma.liveUpdate.create({
+    data: {
+      ...payload.data,
       trustWeight: 1,
       expiresAt: new Date(Date.now() + 1000 * 60 * 90)
     }

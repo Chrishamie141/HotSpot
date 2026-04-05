@@ -6,6 +6,7 @@ import { MobileNav } from "@/components/mobile-nav";
 export const metadata: Metadata = {
   title: "NightPulse",
   description: "Find what is lit near you right now."
+  description: "Find out what's actually busy right now."
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

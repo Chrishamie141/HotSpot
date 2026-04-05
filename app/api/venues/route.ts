@@ -48,4 +48,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return NextResponse.json({ error: "Unable to load nightlife venues", detail: String(error) }, { status: 500 });
   }
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { fallbackVenues } from "@/lib/mock-data";
+
+export async function GET() {
+  const venues = await prisma.venue.findMany({ include: { dressCode: true }, take: 50 }).catch(() => []);
+  return NextResponse.json({ data: venues.length ? venues : fallbackVenues, source: venues.length ? "db" : "fallback" });
 }
