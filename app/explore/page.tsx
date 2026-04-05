@@ -1,12 +1,9 @@
 import { Suspense } from "react";
-import { Card, Badge } from "@/components/ui";
-import { VenueCard } from "@/components/venue-card";
+import { Badge } from "@/components/ui";
 import { ExploreWelcome } from "@/components/explore/explore-welcome";
-import { getExploreVenues } from "@/lib/venues";
+import { ExploreClient } from "@/components/explore/explore-client";
 
-export default async function ExplorePage() {
-  const venues = await getExploreVenues();
-
+export default function ExplorePage() {
   return (
     <main className="min-h-screen bg-black px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
@@ -19,15 +16,14 @@ export default async function ExplorePage() {
               Hot near you
             </h1>
             <p className="mt-3 max-w-2xl text-white/65">
-              Discover real nightlife spots, see what is active, and decide
-              where to go before you head out.
+              Discover real nightlife spots across Central Jersey, filtered by your selected region and distance.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
             <Badge>Map View</Badge>
             <Badge>List View</Badge>
-            <Badge>Trending neighborhoods</Badge>
+            <Badge>Central Jersey Regions</Badge>
           </div>
         </div>
 
@@ -37,25 +33,7 @@ export default async function ExplorePage() {
           </Suspense>
         </div>
 
-        <Card className="mb-8 p-4">
-          <p className="text-sm text-white/70">
-            Filters: club/bar/lounge/rooftop, vibe, open now, no cover, upscale,
-            distance, hottest now.
-          </p>
-        </Card>
-
-        {venues.length === 0 ? (
-          <Card className="p-8 text-center">
-            <h2 className="text-xl font-semibold">Nothing nearby yet</h2>
-            <p className="mt-2 text-white/60">Try another area.</p>
-          </Card>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2">
-            {venues.map((venue) => (
-              <VenueCard key={venue.id} venue={venue} />
-            ))}
-          </div>
-        )}
+        <ExploreClient />
       </div>
     </main>
   );

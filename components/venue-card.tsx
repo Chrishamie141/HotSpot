@@ -3,23 +3,10 @@
 import Link from "next/link";
 import { Star, MapPin, Clock3 } from "lucide-react";
 import { Badge } from "@/components/ui";
-
-export type VenueCardVenue = {
-  id: string;
-  name: string;
-  address: string;
-  photoUrl: string | null;
-  rating: number | null;
-  totalReviews: number;
-  priceLevel: number | null;
-  isOpenNow: boolean | null;
-  distanceMeters?: number;
-  crowdLabel: string;
-  buzzScore: number;
-};
+import { ExploreVenue } from "@/lib/explore/types";
 
 type VenueCardProps = {
-  venue: VenueCardVenue;
+  venue: ExploreVenue;
 };
 
 const priceText = (level: number | null) => {
@@ -27,12 +14,20 @@ const priceText = (level: number | null) => {
   return "$".repeat(level);
 };
 
+function openStateLabel(state: ExploreVenue["openState"]) {
+  if (state === "open_now") return "Open now";
+  if (state === "closing_soon") return "Closing soon";
+  if (state === "closed") return "Closed";
+  return "Hours unavailable";
+}
+
 export function VenueCard({ venue }: VenueCardProps) {
   return (
     <Link href={`/venue/${venue.id}`} className="block">
       <article className="soft-card group grid grid-cols-[120px_1fr] gap-4 rounded-3xl p-3 transition duration-300 hover:-translate-y-0.5 hover:border-fuchsia-300/30 hover:shadow-[0_12px_26px_rgba(168,85,247,0.26)]">
         <div className="relative h-[120px] overflow-hidden rounded-2xl bg-zinc-900">
           {venue.photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={venue.photoUrl}
               alt={venue.name}
@@ -72,18 +67,12 @@ export function VenueCard({ venue }: VenueCardProps) {
           <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-300">
             <span className="inline-flex items-center gap-1">
               <MapPin size={12} />
-              {venue.distanceMeters
-                ? `${(venue.distanceMeters / 1000).toFixed(1)} km`
-                : "—"}
+              {venue.distanceMiles ? `${venue.distanceMiles.toFixed(1)} mi` : "—"}
             </span>
 
             <span className="inline-flex items-center gap-1">
               <Clock3 size={12} />
-              {venue.isOpenNow === null
-                ? "Hours unavailable"
-                : venue.isOpenNow
-                  ? "Open now"
-                  : "Closed"}
+              {openStateLabel(venue.openState)}
             </span>
           </div>
         </div>
