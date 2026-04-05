@@ -14,6 +14,15 @@ export default async function VenuePage({ params }: { params: Promise<{ id: stri
     const gallery = [venue.photoUrl, ...venue.photos.map((photo) => photo.imageUrl)].filter(Boolean) as string[];
 
     return (
+      <section className="space-y-5">
+        <header className="glass rounded-3xl p-5">
+          <h1 className="text-3xl font-bold">{venue.name}</h1>
+          <p className="mt-1 text-sm text-zinc-300">{venue.address}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Badge>{venue.crowdLabel}</Badge>
+            <Badge className="bg-fuchsia-500/20">Buzz {venue.buzzScore}</Badge>
+            <Badge className="gap-1"><Star size={12} className="fill-orange-400 text-orange-400" />{venue.rating?.toFixed(1) ?? "—"}</Badge>
+            <Badge className="gap-1"><Clock3 size={12} />{venue.isOpenNow === null ? "Hours unavailable" : venue.isOpenNow ? "Open now" : "Closed"}</Badge>
       <AppShell title={venue.name} locationLabel="Newark, NJ">
         <section className="space-y-5">
           <header className="glass rounded-3xl p-5">
@@ -56,6 +65,12 @@ export default async function VenuePage({ params }: { params: Promise<{ id: stri
               <p className="text-sm text-zinc-300">Live reports in window: {venue.liveReportsCount}</p>
             </Card>
 
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="space-y-2">
+            <h2 className="text-lg font-semibold">Live Activity</h2>
+            <p className="text-sm text-zinc-300">Compared to usual: {venue.comparedToUsual}</p>
+            <p className="text-sm text-zinc-300">Live reports in window: {venue.liveReportsCount}</p>
+          </Card>
             <Card className="space-y-2 p-4">
               <h2 className="text-lg font-semibold">Dress & Cover</h2>
               <p className="text-sm text-zinc-300">Dress code: {venue.dressCode ?? "No verified dress code yet."}</p>

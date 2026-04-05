@@ -1,25 +1,22 @@
-import { calculateBuzzScore } from "@/lib/buzz-score-engine";
+import { computeVenueBuzz } from "@/lib/explore/ranking";
+import { ExploreVenue } from "@/lib/explore/types";
 import { prisma } from "@/lib/prisma";
 import { GoogleVenue } from "@/lib/services/googlePlaces";
 
-type EnrichedVenue = GoogleVenue & {
-  buzzScore: number;
-  crowdLabel: string;
-  confidence: string;
+type EnrichedVenue = ExploreVenue & {
   lineEstimate: string;
   comparedToUsual: string;
   dressCode: string | null;
   coverTonight: number | null;
   liveReportsCount: number;
   lastUpdated: string | null;
-  distanceMeters?: number;
 };
 
-export async function enrichVenues(venues: GoogleVenue[]): Promise<EnrichedVenue[]> {
+export async function enrichVenues(venues: ExploreVenue[]): Promise<EnrichedVenue[]> {
   if (!venues.length) return [];
 
   const localVenues = await prisma.venue.findMany({
-    where: { googlePlaceId: { in: venues.map((venue) => venue.id) } },
+    where: { googlePlaceId: { in: venues.map((venue) => venue.googlePlaceId) } },
     include: {
       dressCode: true,
       events: true,
@@ -30,42 +27,43 @@ export async function enrichVenues(venues: GoogleVenue[]): Promise<EnrichedVenue
       },
       buzzScoreSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 }
     }
-  });
+  }).catch(() => []);
 
   const localMap = new Map(localVenues.map((venue) => [venue.googlePlaceId, venue]));
 
-  return venues.map((googleVenue) => {
-    const local = localMap.get(googleVenue.id);
-    const momentum = Math.min((local?.liveUpdates.length ?? 0) * 2, 15);
-
-    const computed = calculateBuzzScore({
-      openNow: googleVenue.isOpenNow ?? false,
-      venueType: googleVenue.types.includes("night_club") ? "club" : "bar",
-      localHour: new Date().getHours(),
-      dayOfWeek: new Date().getDay(),
-      rating: googleVenue.rating ?? 4,
-      reviewCount: googleVenue.totalReviews,
-      reviewRecencyBoost: 5,
-      eventBoost: local?.events.length ? 7 : 0,
-      liveReportMomentum: momentum,
-      ownerUpdateBoost: 4,
-      historicalTrend: local?.buzzScoreSnapshots[0]?.score ?? 10,
-      neighborhoodIntensity: 8
+  return venues.map((venue) => {
+    const local = localMap.get(venue.googlePlaceId);
+    const computed = computeVenueBuzz({
+      name: venue.name,
+      types: venue.types,
+      rating: venue.rating,
+      totalReviews: venue.totalReviews,
+      isOpenNow: venue.isOpenNow,
+      distanceMeters: venue.distanceMeters,
+      aiClassification: venue.aiClassification ?? null,
+      nightlifeRelevanceScore: venue.nightlifeRelevanceScore ?? null
     });
 
     return {
-      ...googleVenue,
-      buzzScore: local?.buzzScoreSnapshots[0]?.score ?? computed.score,
-      crowdLabel: local?.liveCrowdLabel ?? computed.crowdLabel,
-      confidence: local?.liveConfidence ?? computed.confidence,
-      lineEstimate: local?.lineStatus ?? computed.lineEstimate,
-      comparedToUsual: local?.comparedToUsual ?? computed.comparedToUsual,
+      ...venue,
+      buzzScore: local?.buzzScoreSnapshots[0]?.score ?? computed.buzzScore,
+      crowdLabel: local?.liveCrowdLabel ? mapCrowdLabel(local.liveCrowdLabel) : computed.crowdLabel,
+      lineEstimate: local?.lineStatus ?? "unknown",
+      comparedToUsual: local?.comparedToUsual ?? "normal",
       dressCode: local?.dressCode?.policySummary ?? null,
       coverTonight: local?.coverTonight ?? null,
       liveReportsCount: local?.liveUpdates.length ?? 0,
       lastUpdated: local?.lastUpdatedAt?.toISOString() ?? null
     };
   });
+}
+
+function mapCrowdLabel(label: string): ExploreVenue["crowdLabel"] {
+  const normalized = label.toUpperCase();
+  if (normalized === "PACKED") return "Packed";
+  if (normalized === "HOT") return "Hot";
+  if (normalized === "ACTIVE") return "Active";
+  return "Quiet";
 }
 
 export async function enrichVenueDetail(placeId: string, googleVenue: GoogleVenue) {
@@ -80,7 +78,22 @@ export async function enrichVenueDetail(placeId: string, googleVenue: GoogleVenu
     }
   });
 
-  const [single] = await enrichVenues([googleVenue]);
+  const ranked = computeVenueBuzz({
+    name: googleVenue.name,
+    types: googleVenue.types,
+    rating: googleVenue.rating,
+    totalReviews: googleVenue.totalReviews,
+    isOpenNow: googleVenue.isOpenNow
+  });
+
+  const [single] = await enrichVenues([
+    {
+      ...googleVenue,
+      crowdLabel: ranked.crowdLabel,
+      buzzScore: ranked.buzzScore,
+      openState: ranked.openState
+    }
+  ]);
 
   return {
     ...single,
@@ -88,6 +101,10 @@ export async function enrichVenueDetail(placeId: string, googleVenue: GoogleVenu
     events: local?.events ?? [],
     liveReports: local?.liveUpdates ?? [],
     trend: local?.buzzScoreSnapshots ?? [],
-    photos: local?.photos ?? []
+    photos: local?.photos ?? [],
+    phone: (googleVenue as GoogleVenue & { phone?: string | null }).phone ?? null,
+    website: (googleVenue as GoogleVenue & { website?: string | null }).website ?? null,
+    mapsUrl: (googleVenue as GoogleVenue & { mapsUrl?: string | null }).mapsUrl ?? null,
+    openingHoursText: (googleVenue as GoogleVenue & { openingHoursText?: string[] }).openingHoursText ?? []
   };
 }
