@@ -1,8 +1,14 @@
+import { PrismaClient, UserRole } from "@prisma/client";
 import { PrismaClient, CrowdLabel, ConfidenceLevel, UserRole } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.user.upsert({
+    where: { email: "admin@nightpulse.app" },
+    update: { role: UserRole.ADMIN },
+    create: { email: "admin@nightpulse.app", displayName: "NightPulse Admin", role: UserRole.ADMIN }
+  });
   const admin = await prisma.user.upsert({
     where: { email: "admin@nightpulse.app" },
     update: {},
