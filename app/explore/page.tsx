@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { Card, Badge } from "@/components/ui";
 import { VenueCard } from "@/components/venue-card";
+import { ExploreWelcome } from "@/components/explore/explore-welcome";
 import { getExploreVenues } from "@/lib/venues";
 
 export default async function ExplorePage() {
@@ -27,6 +29,12 @@ export default async function ExplorePage() {
             <Badge>List View</Badge>
             <Badge>Trending neighborhoods</Badge>
           </div>
+        </div>
+
+        <div className="mb-5">
+          <Suspense fallback={null}>
+            <ExploreWelcome />
+          </Suspense>
         </div>
 
         <Card className="mb-8 p-4">
