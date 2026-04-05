@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OnboardingGuard } from "@/components/onboarding/onboarding-guard";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +14,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-black text-white antialiased">{children}</body>
+      <body className="bg-black text-white antialiased">
+        <OnboardingGuard />
+        {children}
+      </body>
     </html>
   );
 }
