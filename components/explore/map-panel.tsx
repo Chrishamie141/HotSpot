@@ -26,11 +26,30 @@ export function MapPanel({ center, venues }: MapPanelProps) {
       const map = new window.google.maps.Map(mapRef.current, {
         center,
         zoom: 13,
-        styles: [{ elementType: "geometry", stylers: [{ color: "#0b1020" }] }, { elementType: "labels.text.fill", stylers: [{ color: "#d4d4d8" }] }]
+        disableDefaultUI: true,
+        zoomControl: true,
+        styles: [
+          { elementType: "geometry", stylers: [{ color: "#111827" }] },
+          { elementType: "labels.text.fill", stylers: [{ color: "#e4e4e7" }] },
+          { featureType: "road", elementType: "geometry", stylers: [{ color: "#1f2937" }] },
+          { featureType: "water", elementType: "geometry", stylers: [{ color: "#172554" }] }
+        ]
       });
 
       venues.forEach((venue) => {
-        new window.google!.maps.Marker({ position: { lat: venue.lat, lng: venue.lng }, map, title: venue.name });
+        new window.google!.maps.Marker({
+          position: { lat: venue.lat, lng: venue.lng },
+          map,
+          title: venue.name,
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            fillColor: "#f472b6",
+            fillOpacity: 0.9,
+            strokeColor: "#fff",
+            strokeWeight: 1,
+            scale: 7
+          }
+        });
       });
     };
 
@@ -59,5 +78,5 @@ export function MapPanel({ center, venues }: MapPanelProps) {
     return () => clearInterval(poll);
   }, [center, venues]);
 
-  return <div ref={mapRef} className="h-[70vh] w-full rounded-3xl border border-zinc-800" />;
+  return <div ref={mapRef} className="glass h-[72vh] w-full overflow-hidden rounded-3xl" />;
 }
