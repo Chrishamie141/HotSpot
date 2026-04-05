@@ -14,13 +14,14 @@ export type GoogleVenue = {
   photoUrl: string | null;
   types: string[];
   businessStatus: string | null;
-  distanceMeters?: number;
+  googlePlaceId: string;
 };
 
-type NearbyResult = {
+type PlacesResult = {
   place_id: string;
   name: string;
   vicinity?: string;
+  formatted_address?: string;
   geometry?: { location?: { lat?: number; lng?: number } };
   rating?: number;
   user_ratings_total?: number;
@@ -31,22 +32,19 @@ type NearbyResult = {
   business_status?: string;
 };
 
-type PlaceDetailResult = {
-  place_id: string;
-  name: string;
-  formatted_address?: string;
-  geometry?: { location?: { lat?: number; lng?: number } };
-  rating?: number;
-  user_ratings_total?: number;
-  price_level?: number;
-  opening_hours?: { open_now?: boolean; weekday_text?: string[] };
-  photos?: Array<{ photo_reference: string }>;
-  types?: string[];
-  business_status?: string;
-  website?: string;
-  formatted_phone_number?: string;
-  url?: string;
-};
+type SearchMode =
+  | { kind: "nearby"; type?: string; keyword?: string }
+  | { kind: "text"; query: string };
+
+const NIGHTLIFE_SEARCH_PLAN: SearchMode[] = [
+  { kind: "nearby", type: "bar" },
+  { kind: "nearby", type: "night_club" },
+  { kind: "nearby", keyword: "lounge" },
+  { kind: "text", query: "rooftop bar" },
+  { kind: "text", query: "cocktail bar" },
+  { kind: "text", query: "sports bar" },
+  { kind: "text", query: "hookah lounge" }
+];
 
 function getApiKey() {
   const key = process.env.GOOGLE_MAPS_API_KEY;
@@ -54,7 +52,7 @@ function getApiKey() {
   return key;
 }
 
-function photoUrl(photoReference?: string) {
+function createPhotoUrl(photoReference?: string) {
   if (!photoReference) return null;
   const params = new URLSearchParams({
     maxwidth: "800",
@@ -64,48 +62,68 @@ function photoUrl(photoReference?: string) {
   return `${GOOGLE_PLACES_BASE_URL}/photo?${params.toString()}`;
 }
 
-function mapVenue(result: NearbyResult): GoogleVenue {
+function mapGoogleVenue(result: PlacesResult): GoogleVenue {
   return {
     id: result.place_id,
+    googlePlaceId: result.place_id,
     source: "google",
     name: result.name,
-    address: result.vicinity ?? "",
+    address: result.formatted_address ?? result.vicinity ?? "",
     lat: result.geometry?.location?.lat ?? 0,
     lng: result.geometry?.location?.lng ?? 0,
     rating: result.rating ?? null,
     totalReviews: result.user_ratings_total ?? 0,
     priceLevel: result.price_level ?? null,
     isOpenNow: result.opening_hours?.open_now ?? null,
-    photoUrl: photoUrl(result.photos?.[0]?.photo_reference),
+    photoUrl: createPhotoUrl(result.photos?.[0]?.photo_reference),
     types: result.types ?? [],
     businessStatus: result.business_status ?? null
   };
 }
 
-export async function searchNearbyNightlife(lat: number, lng: number, radius = 4000) {
+async function executeSearch(mode: SearchMode, lat: number, lng: number, radius: number) {
   const key = getApiKey();
-  const types = ["bar", "night_club"];
-  const allResults: NearbyResult[] = [];
+  const baseParams = { location: `${lat},${lng}`, radius: String(radius), key };
 
-  for (const type of types) {
+  if (mode.kind === "nearby") {
     const params = new URLSearchParams({
-      location: `${lat},${lng}`,
-      radius: String(radius),
-      type,
-      key
+      ...baseParams,
+      ...(mode.type ? { type: mode.type } : {}),
+      ...(mode.keyword ? { keyword: mode.keyword } : {})
     });
 
     const response = await fetch(`${GOOGLE_PLACES_BASE_URL}/nearbysearch/json?${params.toString()}`, {
-      next: { revalidate: 180 }
+      next: { revalidate: 60 * 10 }
     });
 
-    if (!response.ok) throw new Error(`Google Nearby Search failed for ${type}`);
-    const payload = await response.json();
-    allResults.push(...(payload.results ?? []));
+    if (!response.ok) throw new Error(`Nearby Search failed: ${mode.type ?? mode.keyword}`);
+    const payload = await response.json() as { results?: PlacesResult[] };
+    return payload.results ?? [];
   }
 
+  const params = new URLSearchParams({
+    query: `${mode.query} near ${lat},${lng}`,
+    ...baseParams
+  });
+
+  const response = await fetch(`${GOOGLE_PLACES_BASE_URL}/textsearch/json?${params.toString()}`, {
+    next: { revalidate: 60 * 10 }
+  });
+
+  if (!response.ok) throw new Error(`Text Search failed: ${mode.query}`);
+  const payload = await response.json() as { results?: PlacesResult[] };
+  return payload.results ?? [];
+}
+
+export async function searchNearbyNightlife(lat: number, lng: number, radius: number) {
+  const resultSets = await Promise.all(NIGHTLIFE_SEARCH_PLAN.map((mode) => executeSearch(mode, lat, lng, radius)));
+  const allResults = resultSets.flat();
   const deduped = Array.from(new Map(allResults.map((item) => [item.place_id, item])).values());
-  return deduped.map(mapVenue);
+
+  return deduped
+    .map(mapGoogleVenue)
+    .filter((venue) => venue.lat && venue.lng)
+    .filter((venue) => venue.businessStatus !== "CLOSED_PERMANENTLY");
 }
 
 export async function getPlaceDetails(placeId: string) {
@@ -117,27 +135,15 @@ export async function getPlaceDetails(placeId: string) {
   });
 
   const response = await fetch(`${GOOGLE_PLACES_BASE_URL}/details/json?${params.toString()}`, {
-    next: { revalidate: 180 }
+    next: { revalidate: 60 * 30 }
   });
 
   if (!response.ok) throw new Error("Google Place Details failed");
-  const payload = await response.json();
-  const details = payload.result as PlaceDetailResult;
+  const payload = await response.json() as { result: PlacesResult & { website?: string; formatted_phone_number?: string; url?: string; opening_hours?: { open_now?: boolean; weekday_text?: string[] } } };
+  const details = payload.result;
 
   return {
-    id: details.place_id,
-    source: "google" as const,
-    name: details.name,
-    address: details.formatted_address ?? "",
-    lat: details.geometry?.location?.lat ?? 0,
-    lng: details.geometry?.location?.lng ?? 0,
-    rating: details.rating ?? null,
-    totalReviews: details.user_ratings_total ?? 0,
-    priceLevel: details.price_level ?? null,
-    isOpenNow: details.opening_hours?.open_now ?? null,
-    photoUrl: photoUrl(details.photos?.[0]?.photo_reference),
-    types: details.types ?? [],
-    businessStatus: details.business_status ?? null,
+    ...mapGoogleVenue(details),
     phone: details.formatted_phone_number ?? null,
     website: details.website ?? null,
     mapsUrl: details.url ?? null,

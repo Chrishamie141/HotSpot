@@ -1,4 +1,3 @@
-import { PrismaClient, UserRole } from "@prisma/client";
 import { PrismaClient, CrowdLabel, ConfidenceLevel, UserRole } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -17,13 +16,13 @@ async function main() {
 
   const venues = [
     {
-      googlePlaceId: "mock-place-velvet",
-      name: "Velvet Circuit",
+      googlePlaceId: "seed-place-george-street-social",
+      name: "George Street Social",
       type: "club",
       neighborhood: "Downtown",
-      address: "115 Electric Ave",
-      latitude: 34.045,
-      longitude: -118.251,
+      address: "110 George St, New Brunswick, NJ",
+      latitude: 40.4961,
+      longitude: -74.4446,
       rating: 4.6,
       reviewCount: 2142,
       openNow: true,
@@ -35,13 +34,13 @@ async function main() {
       vibeSummary: "EDM, laser-heavy dance floor"
     },
     {
-      googlePlaceId: "mock-place-harbor",
-      name: "Neon Harbor Rooftop",
+      googlePlaceId: "seed-place-shoreline-loft",
+      name: "Shoreline Loft",
       type: "rooftop",
-      neighborhood: "Waterfront",
-      address: "808 Skyline Row",
-      latitude: 34.02,
-      longitude: -118.28,
+      neighborhood: "Asbury Park",
+      address: "601 Cookman Ave, Asbury Park, NJ",
+      latitude: 40.2194,
+      longitude: -74.0056,
       rating: 4.4,
       reviewCount: 1080,
       openNow: true,
