@@ -1,15 +1,30 @@
-import { PropsWithChildren } from "react";
-import { cn } from "@/lib/utils";
+import { ReactNode } from "react";
 
-export function Card({ children, className }: PropsWithChildren<{ className?: string }>) {
-  return <div className={cn("soft-card rounded-3xl p-4", className)}>{children}</div>;
-  return <div className={cn("rounded-2xl bg-night-card p-4 glow-border", className)}>{children}</div>;
+type CardProps = {
+  children: ReactNode;
+  className?: string;
+};
+
+type BadgeProps = {
+  children: ReactNode;
+  className?: string;
+};
+
+export function Card({ children, className = "" }: CardProps) {
+  return (
+    <div
+      className={`rounded-3xl border border-white/10 bg-white/5 backdrop-blur ${className}`}
+    >
+      {children}
+    </div>
+  );
 }
 
-export function Badge({ children, className }: PropsWithChildren<{ className?: string }>) {
+export function Badge({ children, className = "" }: BadgeProps) {
   return (
-    <span className={cn("inline-flex items-center rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-xs font-medium", className)}>
-    <span className={cn("inline-flex rounded-full bg-night-glow/30 px-2 py-1 text-xs font-medium", className)}>
+    <span
+      className={`inline-flex items-center rounded-full border border-fuchsia-500/20 bg-fuchsia-500/10 px-3 py-1 text-sm font-medium text-fuchsia-100 ${className}`}
+    >
       {children}
     </span>
   );
