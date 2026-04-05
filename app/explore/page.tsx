@@ -1,3 +1,7 @@
+import { ExploreClient } from "@/components/explore/explore-client";
+
+export default function ExplorePage() {
+  return <ExploreClient />;
 import { VenueCard } from "@/components/venue-card";
 import { Card, Badge } from "@/components/ui";
 import { getExploreVenues } from "@/lib/venues";
