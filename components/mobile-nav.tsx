@@ -4,8 +4,8 @@ const nav = [
   ["Explore", "/explore"],
   ["Live", "/live"],
   ["Favorites", "/favorites"],
-  ["Profile", "/profile"]
-];
+  ["Profile", "/profile"],
+] as const;
 
 export function MobileNav() {
   return (

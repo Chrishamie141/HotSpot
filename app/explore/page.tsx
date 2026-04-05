@@ -2,6 +2,18 @@ import { Suspense } from "react";
 import { Badge } from "@/components/ui";
 import { ExploreWelcome } from "@/components/explore/explore-welcome";
 import { ExploreClient } from "@/components/explore/explore-client";
+import { AppShell } from "@/components/app-shell";
+import {
+  EventFeedSection,
+  GreetingBanner,
+  NeighborhoodSection,
+  QuickActionRow,
+  VenueFeedSection,
+} from "@/components/discovery/explore-dashboard";
+import { getExploreVenues } from "@/lib/venues";
+
+export default async function ExplorePage() {
+  const venues = await getExploreVenues();
 
 export default function ExplorePage() {
   return (
@@ -34,7 +46,23 @@ export default function ExplorePage() {
         </div>
 
         <ExploreClient />
+    <AppShell title="Explore" locationLabel="Newark, NJ">
+      <div className="space-y-6">
+        <GreetingBanner />
+        <QuickActionRow />
+        <VenueFeedSection
+          title="Trending near you"
+          subtitle="Live momentum from nearby venues and social activity."
+          venues={venues}
+        />
+        <VenueFeedSection
+          title="Hot tonight"
+          subtitle="Best options to go out right now."
+          venues={[...venues].reverse()}
+        />
+        <NeighborhoodSection />
+        <EventFeedSection venues={venues} />
       </div>
-    </main>
+    </AppShell>
   );
 }
