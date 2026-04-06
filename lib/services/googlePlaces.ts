@@ -32,6 +32,12 @@ type PlacesResult = {
   business_status?: string;
 };
 
+type PlacesSearchPayload = {
+  status?: string;
+  error_message?: string;
+  results?: PlacesResult[];
+};
+
 type SearchMode =
   | { kind: "nearby"; type?: string; keyword?: string }
   | { kind: "text"; query: string };
@@ -97,7 +103,10 @@ async function executeSearch(mode: SearchMode, lat: number, lng: number, radius:
     });
 
     if (!response.ok) throw new Error(`Nearby Search failed: ${mode.type ?? mode.keyword}`);
-    const payload = await response.json() as { results?: PlacesResult[] };
+    const payload = await response.json() as PlacesSearchPayload;
+    if (payload.status && !["OK", "ZERO_RESULTS"].includes(payload.status)) {
+      throw new Error(`Nearby Search API error ${payload.status}: ${payload.error_message ?? "unknown"}`);
+    }
     return payload.results ?? [];
   }
 
@@ -111,14 +120,30 @@ async function executeSearch(mode: SearchMode, lat: number, lng: number, radius:
   });
 
   if (!response.ok) throw new Error(`Text Search failed: ${mode.query}`);
-  const payload = await response.json() as { results?: PlacesResult[] };
+  const payload = await response.json() as PlacesSearchPayload;
+  if (payload.status && !["OK", "ZERO_RESULTS"].includes(payload.status)) {
+    throw new Error(`Text Search API error ${payload.status}: ${payload.error_message ?? "unknown"}`);
+  }
   return payload.results ?? [];
 }
 
 export async function searchNearbyNightlife(lat: number, lng: number, radius: number) {
-  const resultSets = await Promise.all(NIGHTLIFE_SEARCH_PLAN.map((mode) => executeSearch(mode, lat, lng, radius)));
-  const allResults = resultSets.flat();
-  const deduped = Array.from(new Map(allResults.map((item) => [item.place_id, item])).values());
+  const settled = await Promise.allSettled(
+    NIGHTLIFE_SEARCH_PLAN.map((mode) => executeSearch(mode, lat, lng, radius))
+  );
+
+  const successful = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
+
+  settled.forEach((result, index) => {
+    if (result.status === "rejected") {
+      console.warn("[GooglePlaces] search mode failed", {
+        mode: NIGHTLIFE_SEARCH_PLAN[index],
+        error: result.reason instanceof Error ? result.reason.message : String(result.reason)
+      });
+    }
+  });
+
+  const deduped = Array.from(new Map(successful.map((item) => [item.place_id, item])).values());
 
   return deduped
     .map(mapGoogleVenue)
