@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui";
 import { ExploreFilterMenu } from "@/components/explore/explore-filter-menu";
 import { NeighborhoodCardsSection } from "@/components/explore/neighborhood-cards-section";
@@ -12,6 +13,7 @@ import { CENTRAL_JERSEY_REGIONS, FALLBACK_REGION_KEY, getRegionConfig } from "@/
 import { ExploreSort, ExploreVenue, RegionKey, VenueTypeFilter } from "@/lib/explore/types";
 
 const STORAGE_KEY = "nightpulse:explore-state";
+const WELCOME_RESET_KEY = "nightpulse:welcome-reset.v1";
 
 type ExploreState = {
   region: RegionKey;
@@ -38,7 +40,9 @@ const defaultState: ExploreState = {
 };
 
 export function ExploreClient() {
-  const neighborhoodsRef = useRef<HTMLElement>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const neighborhoodsRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<ExploreState>(defaultState);
   const [venues, setVenues] = useState<ExploreVenue[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +53,18 @@ export function ExploreClient() {
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
   const [locationDenied, setLocationDenied] = useState(false);
   const [geoPosition, setGeoPosition] = useState<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    const isWelcomeMoment = searchParams.get("welcome") === "1";
+    if (!isWelcomeMoment) return;
+    if (window.sessionStorage.getItem(WELCOME_RESET_KEY) === "1") return;
+
+    setState(defaultState);
+    setFilterOpen(true);
+    window.localStorage.removeItem(STORAGE_KEY);
+    window.sessionStorage.setItem(WELCOME_RESET_KEY, "1");
+    router.replace("/explore");
+  }, [router, searchParams]);
 
   useEffect(() => {
     const raw = window.localStorage.getItem(STORAGE_KEY);

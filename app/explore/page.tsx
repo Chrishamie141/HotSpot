@@ -29,7 +29,9 @@ export default function ExplorePage() {
           </Suspense>
         </div>
 
-        <ExploreClient />
+        <Suspense fallback={null}>
+          <ExploreClient />
+        </Suspense>
       </div>
     </main>
   );

@@ -47,19 +47,24 @@ export function ExploreFilterMenu(props: ExploreFilterMenuProps) {
 
   return (
     <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="space-y-3">
         <button
           type="button"
           onClick={props.onToggle}
           aria-expanded={props.isOpen}
-          className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/40 px-3 py-1.5 text-sm font-medium text-zinc-100 transition hover:bg-black/60"
+          className="flex w-full items-center justify-between rounded-2xl border border-white/15 bg-black/45 px-3 py-2 text-left text-sm text-zinc-100 transition hover:bg-black/65"
         >
-          <SlidersHorizontal size={14} />
-          Filters
+          <span className="inline-flex items-center gap-2 font-medium">
+            <SlidersHorizontal size={14} />
+            {props.isOpen ? "Hide filters" : "Filters"}
+          </span>
+          <span className="text-xs text-zinc-400">
+            {selectedChips[0]} · {selectedChips[1]}
+          </span>
         </button>
 
         <div className="flex flex-wrap gap-2">
-          {selectedChips.slice(0, 4).map((chip) => (
+          {selectedChips.slice(0, 5).map((chip) => (
             <Badge key={chip} className="border-white/15 bg-white/10 text-xs text-zinc-100">
               {chip}
             </Badge>

@@ -89,6 +89,85 @@ function sortVenues(venues: ExploreVenue[], sort: ExploreSort) {
   });
 }
 
+async function normalizeAndRankVenues(
+  center: { lat: number; lng: number },
+  radiusMeters: number,
+  googleVenues: Awaited<ReturnType<typeof searchNearbyNightlife>>,
+  selectedTypes: VenueTypeFilter[],
+  openNowOnly: boolean,
+  sort: ExploreSort
+) {
+  const normalized = await Promise.all(
+    googleVenues.map(async (venue) => {
+      const distMeters = distanceMeters(center.lat, center.lng, venue.lat, venue.lng);
+
+      const classification = await getVenueClassification({
+        googlePlaceId: venue.googlePlaceId,
+        name: venue.name,
+        address: venue.address,
+        types: venue.types,
+        rating: venue.rating,
+        totalReviews: venue.totalReviews,
+        priceLevel: venue.priceLevel,
+        isOpenNow: venue.isOpenNow
+      }).catch((classificationError) => {
+        console.warn("[Explore API] Classification failed", {
+          placeId: venue.googlePlaceId,
+          error: classificationError instanceof Error ? classificationError.message : String(classificationError)
+        });
+        return null;
+      });
+
+      const buzz = computeVenueBuzz({
+        name: venue.name,
+        types: venue.types,
+        rating: venue.rating,
+        totalReviews: venue.totalReviews,
+        isOpenNow: venue.isOpenNow,
+        distanceMeters: distMeters,
+        aiClassification: classification?.aiClassification ?? null,
+        nightlifeRelevanceScore: classification?.nightlifeRelevanceScore ?? null
+      });
+
+      return {
+        id: venue.googlePlaceId,
+        name: venue.name,
+        address: venue.address,
+        photoUrl: venue.photoUrl,
+        rating: venue.rating,
+        totalReviews: venue.totalReviews,
+        priceLevel: venue.priceLevel,
+        isOpenNow: venue.isOpenNow,
+        openState: buzz.openState,
+        distanceMeters: distMeters,
+        distanceMiles: metersToMiles(distMeters),
+        crowdLabel: buzz.crowdLabel,
+        buzzScore: buzz.buzzScore,
+        lat: venue.lat,
+        lng: venue.lng,
+        googlePlaceId: venue.googlePlaceId,
+        types: venue.types,
+        aiClassification: classification?.aiClassification ?? null,
+        nightlifeRelevanceScore: classification?.nightlifeRelevanceScore ?? null,
+        confidence: classification?.confidence ?? null
+      } satisfies ExploreVenue;
+    })
+  );
+
+  const deduped = Array.from(new Map(normalized.map((item) => [item.googlePlaceId, item])).values());
+  const withinRadius = deduped.filter((venue) => venue.distanceMeters !== undefined && venue.distanceMeters <= radiusMeters);
+  const typeFiltered = withinRadius.filter((venue) => matchesTypeFilters(venue, selectedTypes));
+
+  const openFiltered = openNowOnly
+    ? typeFiltered.filter((venue) => ["open_now", "closing_soon"].includes(venue.openState))
+    : typeFiltered;
+
+  const enriched = await enrichVenues(openFiltered);
+  const sorted = sortVenues(enriched, sort);
+
+  return { sorted, withinRadius, typeFiltered, openFiltered };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const params = request.nextUrl.searchParams;
@@ -133,78 +212,53 @@ export async function GET(request: NextRequest) {
     });
 
     const googleVenues = await searchNearbyNightlife(center.lat, center.lng, radiusMeters);
+    let effectiveDistanceMiles = distanceMiles;
+    let effectiveRadiusMeters = radiusMeters;
+    let fallbackExpandUsed = false;
 
-    const normalized = await Promise.all(
-      googleVenues.map(async (venue) => {
-        const distMeters = distanceMeters(center.lat, center.lng, venue.lat, venue.lng);
-
-        const classification = await getVenueClassification({
-          googlePlaceId: venue.googlePlaceId,
-          name: venue.name,
-          address: venue.address,
-          types: venue.types,
-          rating: venue.rating,
-          totalReviews: venue.totalReviews,
-          priceLevel: venue.priceLevel,
-          isOpenNow: venue.isOpenNow
-        }).catch((classificationError) => {
-          console.warn("[Explore API] Classification failed", {
-            placeId: venue.googlePlaceId,
-            error: classificationError instanceof Error ? classificationError.message : String(classificationError)
-          });
-          return null;
-        });
-
-        const buzz = computeVenueBuzz({
-          name: venue.name,
-          types: venue.types,
-          rating: venue.rating,
-          totalReviews: venue.totalReviews,
-          isOpenNow: venue.isOpenNow,
-          distanceMeters: distMeters,
-          aiClassification: classification?.aiClassification ?? null,
-          nightlifeRelevanceScore: classification?.nightlifeRelevanceScore ?? null
-        });
-
-        return {
-          id: venue.googlePlaceId,
-          name: venue.name,
-          address: venue.address,
-          photoUrl: venue.photoUrl,
-          rating: venue.rating,
-          totalReviews: venue.totalReviews,
-          priceLevel: venue.priceLevel,
-          isOpenNow: venue.isOpenNow,
-          openState: buzz.openState,
-          distanceMeters: distMeters,
-          distanceMiles: metersToMiles(distMeters),
-          crowdLabel: buzz.crowdLabel,
-          buzzScore: buzz.buzzScore,
-          lat: venue.lat,
-          lng: venue.lng,
-          googlePlaceId: venue.googlePlaceId,
-          types: venue.types,
-          aiClassification: classification?.aiClassification ?? null,
-          nightlifeRelevanceScore: classification?.nightlifeRelevanceScore ?? null,
-          confidence: classification?.confidence ?? null
-        } satisfies ExploreVenue;
-      })
+    let { sorted, withinRadius, typeFiltered, openFiltered } = await normalizeAndRankVenues(
+      center,
+      effectiveRadiusMeters,
+      googleVenues,
+      selectedTypes,
+      openNowOnly,
+      sort
     );
 
-    const deduped = Array.from(new Map(normalized.map((item) => [item.googlePlaceId, item])).values());
-    const withinRadius = deduped.filter((venue) => venue.distanceMeters !== undefined && venue.distanceMeters <= radiusMeters);
-    const typeFiltered = withinRadius.filter((venue) => matchesTypeFilters(venue, selectedTypes));
+    if (!sorted.length && distanceMiles < 25) {
+      fallbackExpandUsed = true;
+      effectiveDistanceMiles = 25;
+      effectiveRadiusMeters = milesToMeters(25);
+      console.info("[Explore API] retrying with expanded radius", { fromMiles: distanceMiles, toMiles: 25 });
+      const fallbackGoogleVenues = await searchNearbyNightlife(center.lat, center.lng, effectiveRadiusMeters);
+      ({ sorted, withinRadius, typeFiltered, openFiltered } = await normalizeAndRankVenues(
+        center,
+        effectiveRadiusMeters,
+        fallbackGoogleVenues,
+        selectedTypes,
+        openNowOnly,
+        sort
+      ));
+    }
 
-    const openFiltered = openNowOnly
-      ? typeFiltered.filter((venue) => ["open_now", "closing_soon"].includes(venue.openState))
-      : typeFiltered;
-
-    const enriched = await enrichVenues(openFiltered);
-    const sorted = sortVenues(enriched, sort);
+    if (!sorted.length && effectiveDistanceMiles < 50) {
+      fallbackExpandUsed = true;
+      effectiveDistanceMiles = 50;
+      effectiveRadiusMeters = milesToMeters(50);
+      console.info("[Explore API] retrying with expanded radius", { fromMiles: distanceMiles, toMiles: 50 });
+      const fallbackGoogleVenues = await searchNearbyNightlife(center.lat, center.lng, effectiveRadiusMeters);
+      ({ sorted, withinRadius, typeFiltered, openFiltered } = await normalizeAndRankVenues(
+        center,
+        effectiveRadiusMeters,
+        fallbackGoogleVenues,
+        selectedTypes,
+        openNowOnly,
+        sort
+      ));
+    }
 
     let emptyReason: string | undefined;
-    if (!googleVenues.length) emptyReason = "No Google Places nightlife results were returned for this center and radius.";
-    else if (!withinRadius.length) emptyReason = "Results were found but all were outside your selected distance.";
+    if (!withinRadius.length) emptyReason = "No Google Places nightlife results were returned for this center and radius.";
     else if (!typeFiltered.length) emptyReason = "Results were found but none matched the selected venue types.";
     else if (!openFiltered.length && openNowOnly) emptyReason = "No venues are currently open in this area with Open now only enabled.";
 
@@ -224,9 +278,9 @@ export async function GET(request: NextRequest) {
       meta: {
         region: requestedRegion,
         center,
-        distanceMiles,
-        distanceMeters: radiusMeters,
-        fallbackUsed,
+        distanceMiles: effectiveDistanceMiles,
+        distanceMeters: effectiveRadiusMeters,
+        fallbackUsed: fallbackUsed || fallbackExpandUsed,
         emptyReason
       }
     };
