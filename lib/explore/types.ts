@@ -23,6 +23,10 @@ export type VenueClassification =
   | "event_space"
   | "unclear";
 
+export type VenueTypeFilter = "bars" | "clubs" | "lounges" | "rooftops" | "sports-bars" | "hookah-lounges";
+
+export type ExploreSort = "best-match" | "closest" | "highest-rated" | "hottest-now";
+
 export type ExploreVenue = {
   id: string;
   name: string;
@@ -57,4 +61,5 @@ export type RegionConfig = {
   label: string;
   center: { lat: number; lng: number };
   supportsGeolocation?: boolean;
+  description?: string;
 };
