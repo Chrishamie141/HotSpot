@@ -1,6 +1,5 @@
 import { Activity, Radio, Timer } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
-import { LiveFeedSection } from "@/components/live/live-feed-section";
 import { Card } from "@/components/ui";
 
 export default function LivePage() {
@@ -35,8 +34,6 @@ export default function LivePage() {
           </Card>
         </div>
       </section>
-
-      <LiveFeedSection />
     </AppShell>
   );
 }

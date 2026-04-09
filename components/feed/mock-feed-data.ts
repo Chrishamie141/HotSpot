@@ -1,0 +1,96 @@
+import type { FeedPost, FeedStory } from "@/components/feed/types";
+
+export const mockFeedStories: FeedStory[] = [
+  {
+    id: "story-1",
+    title: "Neon Harbor",
+    subtitle: "Downtown",
+    avatarUrl: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=200&q=80",
+    liveNow: true,
+    type: "venue",
+  },
+  {
+    id: "story-2",
+    title: "@mira.nights",
+    subtitle: "At Velvet Room",
+    avatarUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80",
+    liveNow: true,
+    type: "user",
+  },
+  {
+    id: "story-3",
+    title: "Pulse Social",
+    subtitle: "Line update",
+    avatarUrl: "https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=200&q=80",
+    type: "venue",
+  },
+  {
+    id: "story-4",
+    title: "@danybeats",
+    subtitle: "Rooftop set",
+    avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
+    type: "user",
+  },
+  {
+    id: "story-5",
+    title: "Afterglow",
+    subtitle: "Open mic",
+    avatarUrl: "https://images.unsplash.com/photo-1571950006124-5f1b42ec49e6?auto=format&fit=crop&w=200&q=80",
+    type: "venue",
+  },
+];
+
+export const mockFeedPosts: FeedPost[] = [
+  {
+    id: "post-1",
+    username: "@mira.nights",
+    avatarUrl: "https://images.unsplash.com/photo-1546961329-78bef0414d7c?auto=format&fit=crop&w=200&q=80",
+    venue: "Neon Harbor",
+    location: "Downtown Newark",
+    postedAt: "5m",
+    mediaUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80",
+    mediaType: "image",
+    caption: "Main room is peaking right now.",
+    vibeScore: 9,
+    venueAverageVibe: 8.6,
+    hearted: true,
+    commentsCount: 14,
+  },
+  {
+    id: "post-2",
+    username: "@cityafterdark",
+    avatarUrl: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=200&q=80",
+    venue: "Velvet Room",
+    location: "Ironbound",
+    postedAt: "12m",
+    mediaUrl: "https://cdn.coverr.co/videos/coverr-friends-at-a-nightclub-1579/1080p.mp4",
+    mediaType: "video",
+    caption: "No wait at bar. Dance floor active.",
+    vibeScore: 7,
+    venueAverageVibe: 7.8,
+    commentsCount: 7,
+  },
+  {
+    id: "post-3",
+    username: "@alexgoesout",
+    avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+    venue: "Skyline Loft",
+    location: "University Heights",
+    postedAt: "21m",
+    mediaUrl: "https://images.unsplash.com/photo-1566737236500-c8ac43014a67?auto=format&fit=crop&w=1200&q=80",
+    mediaType: "image",
+    caption: "Great rooftop crowd with room to move.",
+    vibeScore: 6,
+    venueAverageVibe: 6.5,
+    commentsCount: 4,
+  },
+];
+
+export const composerVenues = [
+  "Neon Harbor",
+  "Velvet Room",
+  "Skyline Loft",
+  "Pulse Social Club",
+  "Afterglow Lounge",
+  "Midnight Alley",
+];
