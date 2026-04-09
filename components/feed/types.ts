@@ -24,3 +24,10 @@ export type FeedStory = {
   liveNow?: boolean;
   type: "venue" | "user";
 };
+
+export type ComposerMedia = {
+  id: string;
+  thumbnailUrl: string;
+  mediaUrl: string;
+  mediaType: "image" | "video";
+};

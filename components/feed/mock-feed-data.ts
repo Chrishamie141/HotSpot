@@ -1,4 +1,4 @@
-import type { FeedPost, FeedStory } from "@/components/feed/types";
+import type { ComposerMedia, FeedPost, FeedStory } from "@/components/feed/types";
 
 export const mockFeedStories: FeedStory[] = [
   {
@@ -93,4 +93,43 @@ export const composerVenues = [
   "Pulse Social Club",
   "Afterglow Lounge",
   "Midnight Alley",
+];
+
+export const mockMediaLibrary: ComposerMedia[] = [
+  {
+    id: "media-1",
+    thumbnailUrl: "https://images.unsplash.com/photo-1525268771113-32d9e9021a97?auto=format&fit=crop&w=500&q=80",
+    mediaUrl: "https://images.unsplash.com/photo-1525268771113-32d9e9021a97?auto=format&fit=crop&w=1200&q=80",
+    mediaType: "image",
+  },
+  {
+    id: "media-2",
+    thumbnailUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=500&q=80",
+    mediaUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80",
+    mediaType: "image",
+  },
+  {
+    id: "media-3",
+    thumbnailUrl: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=500&q=80",
+    mediaUrl: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=1200&q=80",
+    mediaType: "image",
+  },
+  {
+    id: "media-4",
+    thumbnailUrl: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=500&q=80",
+    mediaUrl: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80",
+    mediaType: "image",
+  },
+  {
+    id: "media-5",
+    thumbnailUrl: "https://images.unsplash.com/photo-1566737236500-c8ac43014a67?auto=format&fit=crop&w=500&q=80",
+    mediaUrl: "https://images.unsplash.com/photo-1566737236500-c8ac43014a67?auto=format&fit=crop&w=1200&q=80",
+    mediaType: "image",
+  },
+  {
+    id: "media-6",
+    thumbnailUrl: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=500&q=80",
+    mediaUrl: "https://cdn.coverr.co/videos/coverr-friends-at-a-nightclub-1579/1080p.mp4",
+    mediaType: "video",
+  },
 ];

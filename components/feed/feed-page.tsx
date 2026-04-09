@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FeedComposer } from "@/components/feed/feed-composer";
+import { CreatePostFlow } from "@/components/feed/create-post-flow";
 import { mockFeedPosts, mockFeedStories } from "@/components/feed/mock-feed-data";
 import { FeedPostCard } from "@/components/feed/feed-post-card";
 import { FeedStories } from "@/components/feed/feed-stories";
@@ -50,12 +50,7 @@ export function FeedPage() {
   }
 
   return (
-    <section className="space-y-4 pb-8">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Feed</h2>
-        <FeedComposer onCreatePost={onCreatePost} />
-      </div>
-
+    <section className="-mt-2 space-y-4 pb-8">
       <FeedStories stories={mockFeedStories} />
 
       <div className="space-y-4">
@@ -63,6 +58,8 @@ export function FeedPage() {
           <FeedPostCard key={post.id} post={post} onToggleHeart={onToggleHeart} />
         ))}
       </div>
+
+      <CreatePostFlow onCreatePost={onCreatePost} />
     </section>
   );
 }
