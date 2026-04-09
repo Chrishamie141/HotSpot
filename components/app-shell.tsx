@@ -7,6 +7,7 @@ import {
   Bell,
   Compass,
   Heart,
+  Newspaper,
   Radio,
   CalendarDays,
   User,
@@ -30,6 +31,7 @@ type NavItem = {
 
 const mainNav: NavItem[] = [
   { label: "Explore", href: "/explore", icon: Compass },
+  { label: "Feed", href: "/feed", icon: Newspaper },
   { label: "Live", href: "/live", icon: Radio },
   { label: "Favorites", href: "/favorites", icon: Heart },
   { label: "Events", href: "/explore#events", icon: CalendarDays },
