@@ -9,6 +9,7 @@ export type FeedPost = {
   postedAt: string;
   mediaUrl: string;
   mediaType: "image" | "video";
+  thumbnailUrl?: string;
   caption: string;
   vibeScore: number;
   venueAverageVibe: number;

@@ -65,6 +65,7 @@ export const mockFeedPosts: FeedPost[] = [
     postedAt: "12m",
     mediaUrl: "https://cdn.coverr.co/videos/coverr-friends-at-a-nightclub-1579/1080p.mp4",
     mediaType: "video",
+    thumbnailUrl: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80",
     caption: "No wait at bar. Dance floor active.",
     vibeScore: 7,
     venueAverageVibe: 7.8,
