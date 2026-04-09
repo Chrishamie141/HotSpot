@@ -1,14 +1,37 @@
 import type { FeedPost } from "@/components/feed/types";
 import { mockFeedPosts } from "@/components/feed/mock-feed-data";
 
-export const profileData = {
+export type ProfileIdentity = {
+  displayName: string;
+  username: string;
+  bio: string;
+  cityLine: string;
+  avatarUrl: string;
+  followers: number;
+  following: number;
+  isCurrentUser: boolean;
+};
+
+export const currentUserProfile: ProfileIdentity = {
   displayName: "Chris Vale",
   username: "@you",
   bio: "Chasing rooftop sets, late-night lounges, and the city’s best after-hours energy.",
-  cityLine: "Newark nights · Live for house + afrobeat",
+  cityLine: "Newark nights · House + Afrobeat",
   avatarUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80",
-  followers: "24.8K",
-  following: "612",
+  followers: 24800,
+  following: 612,
+  isCurrentUser: true,
+};
+
+export const visitingProfile: ProfileIdentity = {
+  displayName: "Mira Lane",
+  username: "@mira.nights",
+  bio: "Venue scout. Crowd reporter. Posting the real vibe in real time.",
+  cityLine: "Downtown circuit · Tech house",
+  avatarUrl: "https://images.unsplash.com/photo-1546961329-78bef0414d7c?auto=format&fit=crop&w=400&q=80",
+  followers: 11240,
+  following: 384,
+  isCurrentUser: false,
 };
 
 export const profileHighlights = [
@@ -18,11 +41,11 @@ export const profileHighlights = [
   { id: "highlight-4", title: "Crew", coverUrl: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=300&q=80" },
 ];
 
-const seededPosts: FeedPost[] = [
+const seededCurrentUserPosts: FeedPost[] = [
   {
     id: "profile-post-1",
     username: "@you",
-    avatarUrl: profileData.avatarUrl,
+    avatarUrl: currentUserProfile.avatarUrl,
     venue: "Pulse Social Club",
     location: "Downtown Newark",
     postedAt: "1h",
@@ -37,7 +60,7 @@ const seededPosts: FeedPost[] = [
   {
     id: "profile-post-2",
     username: "@you",
-    avatarUrl: profileData.avatarUrl,
+    avatarUrl: currentUserProfile.avatarUrl,
     venue: "Afterglow Lounge",
     location: "Ironbound",
     postedAt: "3d",
@@ -50,10 +73,10 @@ const seededPosts: FeedPost[] = [
   },
 ];
 
-export const profilePosts: FeedPost[] = [...seededPosts, ...mockFeedPosts.filter((post) => post.username === "@you")];
+export const profilePostsCurrentUser: FeedPost[] = [...seededCurrentUserPosts, ...mockFeedPosts.filter((post) => post.username === "@you")];
+export const profilePostsVisitingUser: FeedPost[] = mockFeedPosts.filter((post) => post.username === "@mira.nights");
 
 export const taggedPosts: FeedPost[] = mockFeedPosts;
-
 export const savedPosts: FeedPost[] = [...mockFeedPosts].reverse();
 
 export const profileSettings = [

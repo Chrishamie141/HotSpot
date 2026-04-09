@@ -18,12 +18,15 @@ export function ProfilePostGrid({
   posts,
   taggedPosts,
   savedPosts,
+  activeTab,
+  onTabChange,
 }: {
   posts: FeedPost[];
   taggedPosts: FeedPost[];
   savedPosts: FeedPost[];
+  activeTab: TabId;
+  onTabChange: (tab: TabId) => void;
 }) {
-  const [activeTab, setActiveTab] = useState<TabId>("posts");
   const [selectedPost, setSelectedPost] = useState<FeedPost>();
 
   const visiblePosts = useMemo(() => {
@@ -42,7 +45,7 @@ export function ProfilePostGrid({
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => onTabChange(tab.id)}
               className={`inline-flex items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs transition ${
                 isActive ? "bg-fuchsia-500/20 text-fuchsia-100" : "text-zinc-400 hover:text-zinc-100"
               }`}

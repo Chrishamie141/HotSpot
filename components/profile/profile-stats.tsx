@@ -1,16 +1,22 @@
+function prettyCount(value: number) {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return `${value}`;
+}
+
 export function ProfileStats({
   postCount,
   followers,
   following,
 }: {
   postCount: number;
-  followers: string;
-  following: string;
+  followers: number;
+  following: number;
 }) {
   const items = [
     { label: "Posts", value: postCount.toString() },
-    { label: "Followers", value: followers },
-    { label: "Following", value: following },
+    { label: "Followers", value: prettyCount(followers) },
+    { label: "Following", value: prettyCount(following) },
   ];
 
   return (
