@@ -47,7 +47,7 @@ function matchRoute(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function NavItem({ item, active }: { item: NavItem; active: boolean }) {
+function NavButton({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon;
 
   return (
@@ -59,7 +59,11 @@ export function NavItem({ item, active }: { item: NavItem; active: boolean }) {
           : "border-transparent text-zinc-300 hover:border-white/10 hover:bg-white/5 hover:text-white"
       }`}
     >
-      <span className={`rounded-xl p-1.5 ${active ? "bg-white/15" : "bg-white/5 group-hover:bg-white/10"}`}>
+      <span
+        className={`rounded-xl p-1.5 ${
+          active ? "bg-white/15" : "bg-white/5 group-hover:bg-white/10"
+        }`}
+      >
         <Icon size={15} />
       </span>
       {item.label}
@@ -67,7 +71,7 @@ export function NavItem({ item, active }: { item: NavItem; active: boolean }) {
   );
 }
 
-export function SidebarNav() {
+function SidebarNav() {
   const pathname = usePathname();
 
   return (
@@ -84,23 +88,37 @@ export function SidebarNav() {
 
       <nav className="space-y-2">
         {mainNav.map((item) => (
-          <NavItem key={item.href} item={item} active={matchRoute(pathname, item.href)} />
+          <NavButton
+            key={item.href}
+            item={item}
+            active={matchRoute(pathname, item.href)}
+          />
         ))}
       </nav>
 
       <div className="mt-auto space-y-2 border-t border-white/10 pt-5">
         {utilityNav.map((item) => (
-          <NavItem key={item.label} item={item} active={matchRoute(pathname, item.href)} />
+          <NavButton
+            key={item.label}
+            item={item}
+            active={matchRoute(pathname, item.href)}
+          />
         ))}
       </div>
     </aside>
   );
 }
 
-export function TopBar({ title = "Explore", locationLabel = "Newark, NJ" }: { title?: string; locationLabel?: string }) {
+function TopBar({
+  title = "Explore",
+  locationLabel = "Newark, NJ",
+}: {
+  title?: string;
+  locationLabel?: string;
+}) {
   return (
-    <header className="sticky top-0 z-20 border-b border-white/10 bg-[#070b16]/85 px-4 py-3 backdrop-blur md:px-8">
-      <div className="flex items-center gap-3 md:gap-4">
+    <header className="sticky top-0 z-20 border-b border-white/10 bg-[#070b16]/85 px-3 py-3 backdrop-blur md:px-8">
+      <div className="flex min-w-0 items-center gap-3 md:gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-semibold md:text-2xl">{title}</h1>
         </div>
@@ -108,7 +126,7 @@ export function TopBar({ title = "Explore", locationLabel = "Newark, NJ" }: { ti
         <div className="hidden max-w-sm flex-1 items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-300 lg:flex">
           <Search size={15} />
           <input
-            className="w-full bg-transparent text-sm outline-none placeholder:text-zinc-500"
+            className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-zinc-500"
             placeholder="Search venues, neighborhoods, events"
             aria-label="Search"
           />
@@ -118,12 +136,20 @@ export function TopBar({ title = "Explore", locationLabel = "Newark, NJ" }: { ti
           <MapPin size={12} /> {locationLabel}
         </span>
 
-        <button className="rounded-xl border border-white/10 bg-white/5 p-2 text-zinc-200 transition hover:bg-white/10" aria-label="Notifications">
+        <button
+          className="rounded-xl border border-white/10 bg-white/5 p-2 text-zinc-200 transition hover:bg-white/10"
+          aria-label="Notifications"
+        >
           <Bell size={17} />
         </button>
 
-        <button className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-zinc-100 transition hover:bg-white/10" aria-label="Profile menu">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 text-xs font-semibold">C</span>
+        <button
+          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-zinc-100 transition hover:bg-white/10"
+          aria-label="Profile menu"
+        >
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 text-xs font-semibold">
+            C
+          </span>
           <span className="hidden pr-1 text-xs md:inline">Chris</span>
         </button>
       </div>
@@ -135,37 +161,50 @@ function MobileBottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-3 left-1/2 z-40 flex w-[calc(100%-20px)] max-w-md -translate-x-1/2 items-center justify-around rounded-2xl border border-white/15 bg-[#0a0f1c]/90 p-2 backdrop-blur md:hidden">
-      {mainNav.filter((item) => item.label !== "Events").map((item) => {
-        const Icon = item.icon;
-        const active = matchRoute(pathname, item.href);
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/15 bg-[#0a0f1c]/95 backdrop-blur md:hidden">
+      <div className="mx-auto flex w-full max-w-md items-center justify-around px-2 py-2">
+        {mainNav
+          .filter((item) => item.label !== "Events")
+          .map((item) => {
+            const Icon = item.icon;
+            const active = matchRoute(pathname, item.href);
 
-        return (
-          <Link
-            key={item.label}
-            href={item.href}
-            className={`flex flex-col items-center rounded-xl px-2 py-1 text-[11px] ${active ? "text-fuchsia-200" : "text-zinc-400"}`}
-          >
-            <Icon size={15} />
-            {item.label}
-          </Link>
-        );
-      })}
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`flex min-w-0 flex-col items-center rounded-xl px-2 py-1 text-[11px] ${
+                  active ? "text-fuchsia-200" : "text-zinc-400"
+                }`}
+              >
+                <Icon size={15} />
+                {item.label}
+              </Link>
+            );
+          })}
+      </div>
     </nav>
   );
 }
 
-export function AppShell({ children, title = "Explore", locationLabel }: AppShellProps) {
+export function AppShell({
+  children,
+  title = "Explore",
+  locationLabel,
+}: AppShellProps) {
   return (
-    <div className="min-h-screen bg-[#05070f] text-white">
-      <div className="mx-auto flex max-w-[1600px]">
+    <div className="min-h-screen w-full overflow-x-hidden bg-[#05070f] text-white">
+      <div className="mx-auto flex w-full max-w-[1600px] min-w-0">
         <SidebarNav />
 
-        <div className="flex min-h-screen flex-1 flex-col">
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden">
           <TopBar title={title} locationLabel={locationLabel} />
-          <main className="flex-1 px-4 pb-24 pt-5 md:px-8 md:pb-8">{children}</main>
+          <main className="flex-1 min-w-0 overflow-x-hidden px-3 pb-24 pt-5 md:px-8 md:pb-8">
+            {children}
+          </main>
         </div>
       </div>
+
       <MobileBottomNav />
     </div>
   );

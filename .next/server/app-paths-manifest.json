@@ -1,4 +1,9 @@
 {
+  "/api/venues/nearby/route": "app/api/venues/nearby/route.js",
+  "/page": "app/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/onboarding/page": "app/onboarding/page.js",
+  "/venue/[id]/page": "app/venue/[id]/page.js",
   "/explore/page": "app/explore/page.js",
-  "/page": "app/page.js"
+  "/live/page": "app/live/page.js"
 }
