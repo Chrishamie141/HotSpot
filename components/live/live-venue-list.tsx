@@ -1,98 +1,79 @@
-import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
-import { ReactNode } from "react";
+import { ArrowDownRight, ArrowUpRight, Clock3, MapPin, Minus, Star } from "lucide-react";
 import { Card } from "@/components/ui";
-import { LiveVenue } from "@/components/live/live-venue-data";
+import { LiveVenue } from "@/lib/live/transform-live-venues";
 
 type LiveVenueListProps = {
   venues: LiveVenue[];
+  selectedVenueId: string | null;
+  onSelectVenue: (venueId: string) => void;
 };
 
-const statusStyles: Record<
-  LiveVenue["status"],
-  { label: string; color: string; emoji: string }
-> = {
-  packed: {
-    label: "Packed",
-    color: "text-rose-200 border-rose-400/30 bg-rose-500/10",
-    emoji: "🔴",
-  },
-  moderate: {
-    label: "Moderate",
-    color: "text-amber-200 border-amber-400/30 bg-amber-500/10",
-    emoji: "🟡",
-  },
-  chill: {
-    label: "Chill",
-    color: "text-emerald-200 border-emerald-400/30 bg-emerald-500/10",
-    emoji: "🟢",
-  },
-};
+const statusStyles = {
+  packed: "border-rose-400/30 bg-rose-500/10 text-rose-100",
+  moderate: "border-amber-400/30 bg-amber-500/10 text-amber-100",
+  chill: "border-emerald-400/30 bg-emerald-500/10 text-emerald-100",
+} as const;
 
-const trendStyles: Record<
-  LiveVenue["trend"],
-  { label: string; icon: ReactNode; className: string }
-> = {
-  rising: {
-    label: "Rising",
-    icon: <ArrowUpRight size={14} />,
-    className: "text-emerald-200",
-  },
-  falling: {
-    label: "Dropping",
-    icon: <ArrowDownRight size={14} />,
-    className: "text-rose-200",
-  },
-  stable: {
-    label: "Stable",
-    icon: <Minus size={14} />,
-    className: "text-zinc-300",
-  },
-};
+const trendStyles = {
+  rising: { icon: ArrowUpRight, label: "Rising", color: "text-emerald-200", emoji: "📈" },
+  falling: { icon: ArrowDownRight, label: "Dropping", color: "text-rose-200", emoji: "📉" },
+  stable: { icon: Minus, label: "Stable", color: "text-zinc-300", emoji: "➖" },
+} as const;
 
-export function LiveVenueList({ venues }: LiveVenueListProps) {
+export function LiveVenueList({ venues, selectedVenueId, onSelectVenue }: LiveVenueListProps) {
   return (
-    <Card className="h-full space-y-4 rounded-2xl p-5">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Live venues</h3>
-        <span className="text-xs text-zinc-400">Updated now</span>
+    <Card className="rounded-2xl p-4 sm:p-5">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-base font-semibold sm:text-lg">Nearby venues</h3>
+        <span className="text-xs text-zinc-400">{venues.length} live</span>
       </div>
 
       <div className="space-y-3">
         {venues.map((venue) => {
-          const status = statusStyles[venue.status];
           const trend = trendStyles[venue.trend];
+          const TrendIcon = trend.icon;
+          const isSelected = selectedVenueId === venue.id;
 
           return (
-            <article
+            <button
               key={venue.id}
-              className="rounded-2xl border border-white/10 bg-zinc-950/60 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-fuchsia-300/30 hover:shadow-[0_0_30px_-18px_rgba(217,70,239,0.8)]"
+              type="button"
+              onClick={() => onSelectVenue(venue.id)}
+              className={`w-full rounded-2xl border p-4 text-left transition-all duration-200 ${
+                isSelected
+                  ? "border-fuchsia-300/40 bg-fuchsia-500/10 shadow-[0_0_32px_-20px_rgba(217,70,239,0.95)]"
+                  : "border-white/10 bg-zinc-950/60 hover:border-fuchsia-300/25 hover:bg-zinc-900/80"
+              }`}
             >
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-base font-semibold text-zinc-50">{venue.name}</p>
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${status.color}`}
-                >
-                  <span>{status.emoji}</span>
-                  <span>{status.label}</span>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-zinc-50 sm:text-base">{venue.name}</p>
+                  <p className="mt-1 line-clamp-1 text-xs text-zinc-400 sm:text-sm">{venue.address || "Address unavailable"}</p>
+                </div>
+                <span className={`rounded-full border px-2.5 py-1 text-xs font-medium capitalize ${statusStyles[venue.status]}`}>
+                  {venue.status}
                 </span>
               </div>
 
-              <div className="grid gap-2 text-sm text-zinc-300 sm:grid-cols-3">
-                <p>
-                  Wait: <span className="font-medium text-zinc-100">{venue.waitTime} min</span>
-                </p>
-                <p>
-                  Distance: <span className="font-medium text-zinc-100">{venue.distance.toFixed(1)} mi</span>
-                </p>
-                <p className={`inline-flex items-center gap-1 font-medium ${trend.className}`}>
-                  {trend.icon}
-                  {venue.trend === "rising" && "📈"}
-                  {venue.trend === "falling" && "📉"}
-                  {venue.trend === "stable" && "➖"}
-                  {trend.label}
-                </p>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-zinc-300 sm:grid-cols-4 sm:text-sm">
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock3 size={13} /> {venue.estimatedWaitTime} min
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin size={13} />
+                  {typeof venue.distanceMiles === "number" ? `${venue.distanceMiles.toFixed(1)} mi` : "Nearby"}
+                </span>
+                <span className={`inline-flex items-center gap-1.5 ${trend.color}`}>
+                  <TrendIcon size={13} /> {trend.emoji} {trend.label}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Star size={13} className="fill-amber-400 text-amber-400" />
+                  {venue.rating ? venue.rating.toFixed(1) : "N/A"}
+                </span>
               </div>
-            </article>
+
+              <p className="mt-2 text-xs text-zinc-400">{venue.openNow === true ? "Open now" : venue.openNow === false ? "Closed now" : "Hours unknown"}</p>
+            </button>
           );
         })}
       </div>
