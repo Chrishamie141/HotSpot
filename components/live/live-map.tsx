@@ -4,6 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, MapPinned } from "lucide-react";
 import { LiveVenue } from "@/lib/live/transform-live-venues";
 import { getVenueType, VenueType } from "@/lib/live/getVenueType";
+import {
+  createVenueMarkerDataUrl,
+  createVenueMarkerElement,
+  updateVenueMarkerElement,
+} from "@/lib/live/createVenueMarker";
 
 declare global {
   interface Window {
@@ -27,32 +32,6 @@ type MarkerRecord = {
 
 const MAP_SCRIPT_ID = "google-maps-script";
 
-const MARKER_STYLE: Record<VenueType, { bg: string; glow: string; symbol: string }> = {
-  restaurant: {
-    bg: "#f97316",
-    glow: "rgba(249,115,22,0.45)",
-    symbol:
-      '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v8"/><path d="M7 2v8"/><path d="M5 2v20"/><path d="M14 2v8a4 4 0 0 0 4 4h0"/><path d="M18 2v20"/></svg>',
-  },
-  bar: {
-    bg: "#f59e0b",
-    glow: "rgba(245,158,11,0.45)",
-    symbol:
-      '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8"/><path d="M10 3v5l-3 4h10l-3-4V3"/><path d="M12 12v8"/></svg>',
-  },
-  club: {
-    bg: "#a855f7",
-    glow: "rgba(168,85,247,0.5)",
-    symbol:
-      '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
-  },
-  other: {
-    bg: "#06b6d4",
-    glow: "rgba(6,182,212,0.45)",
-    symbol:
-      '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 22s7-5.2 7-12a7 7 0 0 0-14 0c0 6.8 7 12 7 12z"/></svg>',
-  },
-};
 
 function loadGoogleMaps(apiKey: string): Promise<void> {
   if (window.google?.maps) {
@@ -96,38 +75,6 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
 
   return window.__nightPulseGoogleMapsPromise;
 }
-
-function createAdvancedMarkerNode(venueType: VenueType, isSelected: boolean) {
-  const style = MARKER_STYLE[venueType];
-  const markerNode = document.createElement("div");
-
-  markerNode.style.width = isSelected ? "34px" : "30px";
-  markerNode.style.height = isSelected ? "34px" : "30px";
-  markerNode.style.borderRadius = "999px";
-  markerNode.style.display = "grid";
-  markerNode.style.placeItems = "center";
-  markerNode.style.background = style.bg;
-  markerNode.style.color = "#f8fafc";
-  markerNode.style.border = isSelected ? "2px solid #ffffff" : "1.5px solid #ffffff";
-  markerNode.style.boxShadow = isSelected
-    ? `0 0 0 5px ${style.glow}, 0 10px 22px rgba(0,0,0,0.38)`
-    : `0 0 0 3px ${style.glow}, 0 8px 18px rgba(0,0,0,0.32)`;
-  markerNode.innerHTML = style.symbol;
-
-  return markerNode;
-}
-
-function updateAdvancedMarkerNode(node: HTMLDivElement, venueType: VenueType, isSelected: boolean) {
-  const style = MARKER_STYLE[venueType];
-  node.style.width = isSelected ? "34px" : "30px";
-  node.style.height = isSelected ? "34px" : "30px";
-  node.style.background = style.bg;
-  node.style.border = isSelected ? "2px solid #ffffff" : "1.5px solid #ffffff";
-  node.style.boxShadow = isSelected
-    ? `0 0 0 5px ${style.glow}, 0 10px 22px rgba(0,0,0,0.38)`
-    : `0 0 0 3px ${style.glow}, 0 8px 18px rgba(0,0,0,0.32)`;
-}
-
 export function LiveMap({ venues, selectedVenueId, onSelectVenue, fallbackCenter }: LiveMapProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isClientReady, setIsClientReady] = useState(false);
@@ -286,7 +233,7 @@ export function LiveMap({ venues, selectedVenueId, onSelectVenue, fallbackCenter
       let markerNode: HTMLDivElement | undefined;
 
       if (canUseAdvancedMarkers) {
-        markerNode = createAdvancedMarkerNode(venueType, isSelected);
+        markerNode = createVenueMarkerElement(venueType, isSelected);
 
         marker = new markerApi.AdvancedMarkerElement({
           position: { lat: venue.lat, lng: venue.lng },
@@ -296,19 +243,16 @@ export function LiveMap({ venues, selectedVenueId, onSelectVenue, fallbackCenter
           zIndex: isSelected ? 999 : 1,
         });
       } else {
-        const style = MARKER_STYLE[venueType];
+        const markerIcon = createVenueMarkerDataUrl(venueType, isSelected);
 
         marker = new window.google.maps.Marker({
           position: { lat: venue.lat, lng: venue.lng },
           map: mapRef.current,
           title: venue.name,
           icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            fillColor: style.bg,
-            fillOpacity: 0.95,
-            strokeColor: "#ffffff",
-            strokeWeight: isSelected ? 2 : 1,
-            scale: isSelected ? 10 : 8,
+            url: markerIcon.url,
+            scaledSize: new window.google.maps.Size(markerIcon.size, markerIcon.size + 8),
+            anchor: new window.google.maps.Point(markerIcon.size / 2, markerIcon.size),
           },
           zIndex: isSelected ? 999 : 1,
         });
@@ -337,17 +281,14 @@ export function LiveMap({ venues, selectedVenueId, onSelectVenue, fallbackCenter
       const isSelected = venueId === selectedVenueId;
 
       if (record.node) {
-        updateAdvancedMarkerNode(record.node, record.venueType, isSelected);
+        updateVenueMarkerElement(record.node, record.venueType, isSelected);
         record.marker.zIndex = isSelected ? 999 : 1;
       } else {
-        const style = MARKER_STYLE[record.venueType];
+        const markerIcon = createVenueMarkerDataUrl(record.venueType, isSelected);
         record.marker.setIcon({
-          path: window.google.maps.SymbolPath.CIRCLE,
-          fillColor: style.bg,
-          fillOpacity: 0.95,
-          strokeColor: "#ffffff",
-          strokeWeight: isSelected ? 2 : 1,
-          scale: isSelected ? 10 : 8,
+          url: markerIcon.url,
+          scaledSize: new window.google.maps.Size(markerIcon.size, markerIcon.size + 8),
+          anchor: new window.google.maps.Point(markerIcon.size / 2, markerIcon.size),
         });
         record.marker.setZIndex(isSelected ? 999 : 1);
       }
