@@ -9,6 +9,12 @@ export type AppUser = {
   hometown?: string;
   favoriteVibe?: string;
   createdAt: string;
+  privacyEnabled: boolean;
+  notificationsEnabled: boolean;
+  contentPreferencesEnabled: boolean;
+  nightlifePreferences: string[];
+  savedPostIds: string[];
+  taggedPostIds: string[];
 };
 
 export type UserSession = {

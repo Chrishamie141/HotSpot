@@ -159,7 +159,7 @@ function TopBar({
           <Bell size={17} />
         </button>
 
-        <Link href="/profile" className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-zinc-100 transition hover:bg-white/10" aria-label="Profile menu">
+        <Link href={user ? "/profile" : "/login"} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-zinc-100 transition hover:bg-white/10" aria-label="Profile menu">
           <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 text-xs font-semibold">
             {user?.avatarUrl ? <img src={user.avatarUrl} alt={user.displayName} className="h-full w-full object-cover" /> : initial}
           </span>

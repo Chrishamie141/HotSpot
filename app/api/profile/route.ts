@@ -7,11 +7,24 @@ export async function PATCH(request: NextRequest) {
     const user = await requireAuth();
     const body = await request.json();
 
+    if (typeof body.currentPassword === "string" && typeof body.newPassword === "string") {
+      if (user.password !== body.currentPassword) {
+        return NextResponse.json({ error: "Current password is incorrect." }, { status: 400 });
+      }
+    }
+
     const updated = await updateUserProfile(user.id, {
       displayName: typeof body.displayName === "string" ? body.displayName : undefined,
       bio: typeof body.bio === "string" ? body.bio : undefined,
       avatarUrl: typeof body.avatarUrl === "string" ? body.avatarUrl : undefined,
       username: typeof body.username === "string" ? body.username : undefined,
+      privacyEnabled: typeof body.privacyEnabled === "boolean" ? body.privacyEnabled : undefined,
+      notificationsEnabled: typeof body.notificationsEnabled === "boolean" ? body.notificationsEnabled : undefined,
+      contentPreferencesEnabled: typeof body.contentPreferencesEnabled === "boolean" ? body.contentPreferencesEnabled : undefined,
+      nightlifePreferences: Array.isArray(body.nightlifePreferences) ? body.nightlifePreferences : undefined,
+      password: typeof body.newPassword === "string" ? body.newPassword : undefined,
+      savedPostIds: Array.isArray(body.savedPostIds) ? body.savedPostIds : undefined,
+      taggedPostIds: Array.isArray(body.taggedPostIds) ? body.taggedPostIds : undefined,
     });
 
     if ("error" in updated) {
