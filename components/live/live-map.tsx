@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, MapPinned } from "lucide-react";
 import { LiveVenue } from "@/lib/live/transform-live-venues";
-import { getVenueType, VenueType } from "@/lib/live/getVenueType";
+import type { VenueType } from "@/lib/live/getVenueType";
+import { classifyVenueType } from "@/lib/live/classifyVenueType";
 import {
   createVenueMarkerDataUrl,
   createVenueMarkerElement,
@@ -28,6 +29,8 @@ type MarkerRecord = {
   marker: any;
   venueType: VenueType;
   node?: HTMLDivElement;
+  confidence: "high" | "medium" | "low";
+  reason: string;
 };
 
 const MAP_SCRIPT_ID = "google-maps-script";
@@ -226,7 +229,12 @@ export function LiveMap({ venues, selectedVenueId, onSelectVenue, fallbackCenter
         return;
       }
 
-      const venueType = getVenueType({ types: venue.sourceVenue.types, name: venue.name });
+      const classification = classifyVenueType({
+        types: venue.sourceVenue.types,
+        name: venue.name,
+        aiClassification: venue.sourceVenue.aiClassification,
+      });
+      const venueType = classification.venueType;
       const isSelected = selectedVenueId === venue.id;
 
       let marker: any;
@@ -238,7 +246,7 @@ export function LiveMap({ venues, selectedVenueId, onSelectVenue, fallbackCenter
         marker = new markerApi.AdvancedMarkerElement({
           position: { lat: venue.lat, lng: venue.lng },
           map: mapRef.current,
-          title: venue.name,
+          title: `${venue.name} (${classification.venueType})`,
           content: markerNode,
           zIndex: isSelected ? 999 : 1,
         });
@@ -248,7 +256,7 @@ export function LiveMap({ venues, selectedVenueId, onSelectVenue, fallbackCenter
         marker = new window.google.maps.Marker({
           position: { lat: venue.lat, lng: venue.lng },
           map: mapRef.current,
-          title: venue.name,
+          title: `${venue.name} (${classification.venueType})`,
           icon: {
             url: markerIcon.url,
             scaledSize: new window.google.maps.Size(markerIcon.size, markerIcon.size + 8),
@@ -270,6 +278,8 @@ export function LiveMap({ venues, selectedVenueId, onSelectVenue, fallbackCenter
         marker,
         node: markerNode,
         venueType,
+        confidence: classification.confidence,
+        reason: classification.reason,
       });
     });
   }, [isMapReady, onSelectVenue, selectedVenueId, venuesWithCoords]);
