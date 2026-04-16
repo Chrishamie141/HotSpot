@@ -1,6 +1,6 @@
 import { classifyVenueType } from "@/lib/live/classifyVenueType";
 
-export type VenueType = "restaurant" | "bar" | "club" | "other";
+export type VenueType = "restaurant" | "bar" | "club" | "lounge" | "other";
 
 type VenueTypeInput = {
   types?: string[] | null;

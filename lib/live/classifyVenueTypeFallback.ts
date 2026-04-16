@@ -1,6 +1,6 @@
 import {
   classifyVenueTypeWithRules,
-  VenueTypeClassification,
+  type VenueTypeClassification,
 } from "@/lib/live/classifyVenueTypeWithRules";
 
 type FallbackInput = {
@@ -26,19 +26,25 @@ export function classifyVenueTypeFallback(
   });
 
   const cached = cache.get(key);
-  if (cached) {
-    return cached;
-  }
+  if (cached) return cached;
 
   const normalizedName = (input.name ?? "").toLowerCase();
 
   let resolved: VenueTypeClassification;
 
-  if (/(rooftop|speakeasy|tap|brew|cocktail|wine)/.test(normalizedName)) {
+  if (/(lounge|hookah|shisha|cigar)/.test(normalizedName)) {
+    resolved = {
+      venueType: "lounge",
+      confidence: "medium",
+      reason: "Fallback keyword matched lounge intent",
+      ambiguous: false,
+      source: "fallback",
+    };
+  } else if (/(rooftop|speakeasy|tap|brew|cocktail|wine)/.test(normalizedName)) {
     resolved = {
       venueType: "bar",
       confidence: "medium",
-      reason: "Fallback keyword matched bar/lounge intent",
+      reason: "Fallback keyword matched bar intent",
       ambiguous: false,
       source: "fallback",
     };
@@ -46,7 +52,7 @@ export function classifyVenueTypeFallback(
     resolved = {
       venueType: "restaurant",
       confidence: "medium",
-      reason: "Fallback keyword matched dining intent",
+      reason: "Fallback keyword matched restaurant intent",
       ambiguous: false,
       source: "fallback",
     };
@@ -54,7 +60,7 @@ export function classifyVenueTypeFallback(
     resolved = {
       venueType: "club",
       confidence: "medium",
-      reason: "Fallback keyword matched nightlife/club intent",
+      reason: "Fallback keyword matched club intent",
       ambiguous: false,
       source: "fallback",
     };

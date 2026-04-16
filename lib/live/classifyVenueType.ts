@@ -1,6 +1,6 @@
 import {
   classifyVenueTypeWithRules,
-  VenueTypeClassification,
+  type VenueTypeClassification,
 } from "@/lib/live/classifyVenueTypeWithRules";
 import { classifyVenueTypeFallback } from "@/lib/live/classifyVenueTypeFallback";
 
