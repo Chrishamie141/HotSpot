@@ -20,6 +20,7 @@ export function CreatePostFlow({
     mediaUrl?: string;
     mediaType?: "image" | "video";
     peopleTags?: string;
+    locationTag?: string;
   }) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,6 +28,7 @@ export function CreatePostFlow({
   const [selectedMedia, setSelectedMedia] = useState<ComposerMedia>();
   const [caption, setCaption] = useState("");
   const [venue, setVenue] = useState("Neon Harbor");
+  const [locationTag, setLocationTag] = useState("Downtown");
   const [peopleTags, setPeopleTags] = useState("");
   const [vibeScore, setVibeScore] = useState(7);
 
@@ -40,6 +42,7 @@ export function CreatePostFlow({
     setStep(0);
     setCaption("");
     setVenue("Neon Harbor");
+    setLocationTag("Downtown");
     setPeopleTags("");
     setVibeScore(7);
     setSelectedMedia(undefined);
@@ -68,6 +71,7 @@ export function CreatePostFlow({
       mediaUrl: selectedMedia?.mediaUrl,
       mediaType: selectedMedia?.mediaType,
       peopleTags,
+      locationTag,
     });
     closeFlow();
   }
@@ -130,9 +134,11 @@ export function CreatePostFlow({
               <CreatePostDetails
                 venue={venue}
                 caption={caption}
+                locationTag={locationTag}
                 peopleTags={peopleTags}
                 vibeScore={vibeScore}
                 onVenueChange={setVenue}
+                onLocationTagChange={setLocationTag}
                 onCaptionChange={setCaption}
                 onPeopleTagsChange={setPeopleTags}
                 onVibeChange={setVibeScore}

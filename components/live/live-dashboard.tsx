@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, Flame, MapPin, Radio, Timer } from "lucide-react";
+import { Activity, Flame, MapPin, Radio, Search, Timer } from "lucide-react";
 import { Card } from "@/components/ui";
 import { RegionKey, ExploreVenue } from "@/lib/explore/types";
 import { CENTRAL_JERSEY_REGIONS, getRegionConfig } from "@/lib/explore/regions";
@@ -9,12 +9,12 @@ import {
   getHotRightNow,
   getRecommendation,
   getRecommendationReasons,
-  LiveVenue,
   transformLiveVenues,
 } from "@/lib/live/transform-live-venues";
 import { RecommendationCard } from "@/components/live/recommendation-card";
 import { LiveMap } from "@/components/live/live-map";
 import { LiveVenueList } from "@/components/live/live-venue-list";
+import { classifyVenueType } from "@/lib/live/classifyVenueType";
 
 type LiveDashboardProps = {
   initialRegion: RegionKey;
@@ -29,11 +29,16 @@ type NearbyApiResponse = {
 };
 
 const DISTANCE_OPTIONS = [5, 10, 25] as const;
+const VENUE_FILTERS = ["all", "bar", "club", "restaurant", "lounge"] as const;
+
+type VenueFilter = (typeof VENUE_FILTERS)[number];
 
 export function LiveDashboard({ initialRegion, initialVenues }: LiveDashboardProps) {
   const [region, setRegion] = useState<RegionKey>(initialRegion);
   const [distanceMiles, setDistanceMiles] = useState<number>(10);
   const [openNowOnly, setOpenNowOnly] = useState<boolean>(true);
+  const [venueFilter, setVenueFilter] = useState<VenueFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [venues, setVenues] = useState<ExploreVenue[]>(initialVenues);
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(initialVenues[0]?.id ?? null);
   const [center, setCenter] = useState(getRegionConfig(initialRegion).center);
@@ -103,29 +108,51 @@ export function LiveDashboard({ initialRegion, initialVenues }: LiveDashboardPro
   }, [region]);
 
   const liveVenues = useMemo(() => transformLiveVenues(venues), [venues]);
+
+  const filteredVenues = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+
+    return liveVenues.filter((venue) => {
+      const venueType = classifyVenueType({ name: venue.name, types: venue.sourceVenue.types }).venueType;
+      const matchesType = venueFilter === "all" ? true : venueType === venueFilter;
+
+      if (!matchesType) return false;
+      if (!q) return true;
+
+      return [venue.name, venue.address].some((value) => value.toLowerCase().includes(q));
+    });
+  }, [liveVenues, searchQuery, venueFilter]);
+
+  useEffect(() => {
+    if (!filteredVenues.length) return;
+    if (!selectedVenueId || !filteredVenues.some((venue) => venue.id === selectedVenueId)) {
+      setSelectedVenueId(filteredVenues[0].id);
+    }
+  }, [filteredVenues, selectedVenueId]);
+
   const selectedVenue = useMemo(
-    () => liveVenues.find((venue) => venue.id === selectedVenueId) ?? null,
-    [liveVenues, selectedVenueId]
+    () => filteredVenues.find((venue) => venue.id === selectedVenueId) ?? null,
+    [filteredVenues, selectedVenueId]
   );
 
-  const hotRightNow = useMemo(() => getHotRightNow(liveVenues, 3), [liveVenues]);
-  const recommendation = useMemo(() => getRecommendation(liveVenues), [liveVenues]);
+  const hotRightNow = useMemo(() => getHotRightNow(filteredVenues, 3), [filteredVenues]);
+  const recommendation = useMemo(() => getRecommendation(filteredVenues), [filteredVenues]);
   const recommendationReasons = useMemo(
     () => (recommendation ? getRecommendationReasons(recommendation) : []),
     [recommendation]
   );
 
   const buzzIndex = useMemo(() => {
-    if (liveVenues.length === 0) return 0;
-    return Math.round(liveVenues.reduce((sum, venue) => sum + venue.hotScore, 0) / liveVenues.length);
-  }, [liveVenues]);
+    if (filteredVenues.length === 0) return 0;
+    return Math.round(filteredVenues.reduce((sum, venue) => sum + venue.hotScore, 0) / filteredVenues.length);
+  }, [filteredVenues]);
 
   const averageWait = useMemo(() => {
-    if (liveVenues.length === 0) return 0;
+    if (filteredVenues.length === 0) return 0;
     return Math.round(
-      liveVenues.reduce((sum, venue) => sum + venue.estimatedWaitTime, 0) / liveVenues.length
+      filteredVenues.reduce((sum, venue) => sum + venue.estimatedWaitTime, 0) / filteredVenues.length
     );
-  }, [liveVenues]);
+  }, [filteredVenues]);
 
   return (
     <section className="space-y-4 sm:space-y-5">
@@ -147,11 +174,11 @@ export function LiveDashboard({ initialRegion, initialVenues }: LiveDashboardPro
           <p className="inline-flex items-center gap-1.5 text-xs text-cyan-200 sm:text-sm">
             <Radio size={14} /> Active venues
           </p>
-          <p className="mt-1 text-xl font-semibold sm:text-2xl">{liveVenues.length}</p>
+          <p className="mt-1 text-xl font-semibold sm:text-2xl">{filteredVenues.length}</p>
         </Card>
         <Card className="rounded-2xl p-3 sm:p-4">
           <p className="inline-flex items-center gap-1.5 text-xs text-violet-200 sm:text-sm">
-            <Timer size={14} /> Avg line
+            <Timer size={14} /> Estimated wait
           </p>
           <p className="mt-1 text-xl font-semibold sm:text-2xl">{averageWait} min</p>
         </Card>
@@ -204,6 +231,31 @@ export function LiveDashboard({ initialRegion, initialVenues }: LiveDashboardPro
             Open now
           </button>
         </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <label className="relative min-w-[220px] flex-1">
+            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search venue, city, or neighborhood"
+              className="h-11 w-full rounded-xl border border-white/10 bg-white/5 pl-9 pr-3 text-sm text-zinc-100 outline-none"
+            />
+          </label>
+
+          {VENUE_FILTERS.map((filter) => (
+            <button
+              key={filter}
+              type="button"
+              onClick={() => setVenueFilter(filter)}
+              className={`min-h-10 rounded-full px-3 text-xs font-semibold capitalize ${
+                venueFilter === filter ? "bg-white text-black" : "border border-white/10 bg-white/5 text-zinc-200"
+              }`}
+            >
+              {filter === "all" ? "All" : `${filter}s`}
+            </button>
+          ))}
+        </div>
       </Card>
 
       <RecommendationCard venue={recommendation} reasons={recommendationReasons} />
@@ -211,7 +263,7 @@ export function LiveDashboard({ initialRegion, initialVenues }: LiveDashboardPro
       <Card className="rounded-2xl p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="inline-flex items-center gap-2 text-base font-semibold sm:text-lg">
-            <Flame size={16} className="text-amber-300" /> Hot right now
+            <Flame size={16} className="text-amber-300" /> High activity nearby
           </h3>
           <span className="text-xs text-zinc-400">Top 3 nearby</span>
         </div>
@@ -228,7 +280,7 @@ export function LiveDashboard({ initialRegion, initialVenues }: LiveDashboardPro
                 <p className="truncate text-sm font-semibold text-zinc-50 sm:text-base">
                   #{index + 1} {venue.name}
                 </p>
-                <span className="text-xs text-zinc-300">{venue.estimatedWaitTime} min</span>
+                <span className="text-xs text-zinc-300">Est. wait {venue.estimatedWaitTime} min</span>
               </div>
               <p className="mt-1 line-clamp-1 text-xs text-zinc-400 sm:text-sm">{venue.address || "Address unavailable"}</p>
             </button>
@@ -236,14 +288,14 @@ export function LiveDashboard({ initialRegion, initialVenues }: LiveDashboardPro
 
           {!isLoading && hotRightNow.length === 0 && (
             <p className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-zinc-300">
-              No hot venues available for this region yet.
+              No high-activity venues available for this region yet.
             </p>
           )}
         </div>
       </Card>
 
       <LiveMap
-        venues={liveVenues}
+        venues={filteredVenues}
         selectedVenueId={selectedVenue?.id ?? null}
         onSelectVenue={setSelectedVenueId}
         fallbackCenter={center}
@@ -257,15 +309,15 @@ export function LiveDashboard({ initialRegion, initialVenues }: LiveDashboardPro
         <Card className="rounded-2xl border-rose-300/20 bg-rose-500/10 p-4 text-sm text-rose-100">{error}</Card>
       )}
 
-      {!isLoading && !error && liveVenues.length === 0 && (
+      {!isLoading && !error && filteredVenues.length === 0 && (
         <Card className="rounded-2xl p-4 text-sm text-zinc-300">
-          No venues found. Try a larger distance or a different region.
+          No venues found in this area. Try a larger distance, broader search, or a different venue type.
         </Card>
       )}
 
-      {!isLoading && liveVenues.length > 0 && (
+      {!isLoading && filteredVenues.length > 0 && (
         <LiveVenueList
-          venues={liveVenues}
+          venues={filteredVenues}
           selectedVenueId={selectedVenue?.id ?? null}
           onSelectVenue={setSelectedVenueId}
         />

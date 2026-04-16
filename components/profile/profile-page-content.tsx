@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AuthModal } from "@/components/profile/auth-modal";
 import { EditProfileFlow } from "@/components/profile/edit-profile-flow";
 import { currentUserProfile, profileHighlights, profilePostsCurrentUser, profilePostsVisitingUser, profileSettings, savedPosts, taggedPosts, visitingProfile } from "@/components/profile/mock-profile-data";
@@ -11,6 +11,7 @@ import { ProfilePostGrid } from "@/components/profile/profile-post-grid";
 import { ProfileSettingsScreen } from "@/components/profile/profile-settings-screen";
 import { ShareProfileSheet } from "@/components/profile/share-profile-sheet";
 import { ProfileStats } from "@/components/profile/profile-stats";
+import { readFavorites, type SavedVenue } from "@/lib/favorites";
 
 export function ProfilePageContent() {
   const [viewingOwnProfile, setViewingOwnProfile] = useState(true);
@@ -24,12 +25,17 @@ export function ProfilePageContent() {
   const [openAuth, setOpenAuth] = useState(false);
   const [highlightMessage, setHighlightMessage] = useState("");
   const [currentProfile, setCurrentProfile] = useState(currentUserProfile);
+  const [savedVenues, setSavedVenues] = useState<SavedVenue[]>([]);
 
   const profile = viewingOwnProfile ? currentProfile : visitingProfile;
 
   const posts = useMemo(() => (viewingOwnProfile ? profilePostsCurrentUser : profilePostsVisitingUser), [viewingOwnProfile]);
 
   const followers = viewingOwnProfile ? profile.followers : profile.followers + followerDelta;
+
+  useEffect(() => {
+    setSavedVenues(readFavorites());
+  }, []);
 
   return (
     <section className="space-y-4">
@@ -92,6 +98,19 @@ export function ProfilePageContent() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
+
+      <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <h3 className="text-sm font-semibold text-zinc-100">Saved venues</h3>
+        {savedVenues.length ? (
+          <ul className="mt-2 space-y-1 text-sm text-zinc-300">
+            {savedVenues.slice(0, 5).map((venue) => (
+              <li key={venue.id}>• {venue.name}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-zinc-400">No saved venues yet.</p>
+        )}
+      </section>
 
       <ShareProfileSheet open={openShare} username={profile.username} onClose={() => setOpenShare(false)} />
       <EditProfileFlow

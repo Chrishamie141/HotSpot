@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import { ArrowDownRight, ArrowUpRight, Clock3, MapPin, Minus, Star } from "lucide-react";
 import { Card } from "@/components/ui";
 import { LiveVenue } from "@/lib/live/transform-live-venues";
@@ -9,9 +12,15 @@ type LiveVenueListProps = {
 };
 
 const statusStyles = {
-  packed: "border-rose-400/30 bg-rose-500/10 text-rose-100",
+  high: "border-rose-400/30 bg-rose-500/10 text-rose-100",
   moderate: "border-amber-400/30 bg-amber-500/10 text-amber-100",
-  chill: "border-emerald-400/30 bg-emerald-500/10 text-emerald-100",
+  low: "border-emerald-400/30 bg-emerald-500/10 text-emerald-100",
+} as const;
+
+const statusLabel = {
+  high: "High activity",
+  moderate: "Moderate activity",
+  low: "Low activity",
 } as const;
 
 const trendStyles = {
@@ -21,6 +30,16 @@ const trendStyles = {
 } as const;
 
 export function LiveVenueList({ venues, selectedVenueId, onSelectVenue }: LiveVenueListProps) {
+  const cardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  useEffect(() => {
+    if (!selectedVenueId) return;
+    const node = cardRefs.current[selectedVenueId];
+    if (!node) return;
+
+    node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [selectedVenueId]);
+
   return (
     <Card className="rounded-2xl p-4 sm:p-5">
       <div className="mb-3 flex items-center justify-between">
@@ -37,6 +56,9 @@ export function LiveVenueList({ venues, selectedVenueId, onSelectVenue }: LiveVe
           return (
             <button
               key={venue.id}
+              ref={(node) => {
+                cardRefs.current[venue.id] = node;
+              }}
               type="button"
               onClick={() => onSelectVenue(venue.id)}
               className={`w-full rounded-2xl border p-4 text-left transition-all duration-200 ${
@@ -50,14 +72,14 @@ export function LiveVenueList({ venues, selectedVenueId, onSelectVenue }: LiveVe
                   <p className="truncate text-sm font-semibold text-zinc-50 sm:text-base">{venue.name}</p>
                   <p className="mt-1 line-clamp-1 text-xs text-zinc-400 sm:text-sm">{venue.address || "Address unavailable"}</p>
                 </div>
-                <span className={`rounded-full border px-2.5 py-1 text-xs font-medium capitalize ${statusStyles[venue.status]}`}>
-                  {venue.status}
+                <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${statusStyles[venue.status]}`}>
+                  {statusLabel[venue.status]}
                 </span>
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-zinc-300 sm:grid-cols-4 sm:text-sm">
                 <span className="inline-flex items-center gap-1.5">
-                  <Clock3 size={13} /> {venue.estimatedWaitTime} min
+                  <Clock3 size={13} /> Est. wait {venue.estimatedWaitTime} min
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <MapPin size={13} />
