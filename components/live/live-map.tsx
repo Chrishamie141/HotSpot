@@ -66,19 +66,24 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
 export function LiveMap({ venues, selectedVenueId, onSelectVenue, fallbackCenter }: LiveMapProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isClientReady, setIsClientReady] = useState(false);
+  const [isMapReady, setIsMapReady] = useState(false);
   const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(null);
 
   const frameOneRef = useRef<number | null>(null);
   const frameTwoRef = useRef<number | null>(null);
-  const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapViewportRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const infoWindowRef = useRef<any>(null);
   const markersRef = useRef<Map<string, any>>(new Map());
 
+  const venuesWithCoords = useMemo(
+    () => venues.filter((venue) => Number.isFinite(venue.lat) && Number.isFinite(venue.lng)),
+    [venues]
+  );
+
   const selectedVenue = useMemo(
-    () => venues.find((venue) => venue.id === selectedVenueId) ?? null,
-    [selectedVenueId, venues]
+    () => venuesWithCoords.find((venue) => venue.id === selectedVenueId) ?? null,
+    [selectedVenueId, venuesWithCoords]
   );
 
   const mapCenter = useMemo(() => {
@@ -86,12 +91,12 @@ export function LiveMap({ venues, selectedVenueId, onSelectVenue, fallbackCenter
       return { lat: selectedVenue.lat, lng: selectedVenue.lng };
     }
 
-    if (venues[0]) {
-      return { lat: venues[0].lat, lng: venues[0].lng };
+    if (venuesWithCoords[0]) {
+      return { lat: venuesWithCoords[0].lat, lng: venuesWithCoords[0].lng };
     }
 
     return fallbackCenter;
-  }, [fallbackCenter, selectedVenue, venues]);
+  }, [fallbackCenter, selectedVenue, venuesWithCoords]);
 
   const refreshMapLayout = () => {
     if (!window.google?.maps || !mapRef.current) return;
@@ -164,9 +169,9 @@ export function LiveMap({ venues, selectedVenueId, onSelectVenue, fallbackCenter
           });
 
           infoWindowRef.current = new window.google.maps.InfoWindow();
+          setIsMapReady(true);
         }
 
-        // Wait for stable layout before first resize/paint sync.
         frameOneRef.current = window.requestAnimationFrame(() => {
           frameTwoRef.current = window.requestAnimationFrame(() => {
             refreshMapLayout();
@@ -187,35 +192,72 @@ export function LiveMap({ venues, selectedVenueId, onSelectVenue, fallbackCenter
   }, [containerSize, isClientReady, mapCenter]);
 
   useEffect(() => {
-    if (!window.google?.maps || !mapRef.current) return;
+    if (!window.google?.maps || !mapRef.current || !isMapReady) return;
 
-    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current.forEach((marker) => {
+      if (typeof marker.setMap === "function") {
+        marker.setMap(null);
+      } else {
+        marker.map = null;
+      }
+    });
     markersRef.current.clear();
 
-    venues.forEach((venue) => {
+    const markerApi = window.google.maps.marker;
+    const canUseAdvancedMarkers = Boolean(markerApi?.AdvancedMarkerElement && markerApi?.PinElement);
+
+    venuesWithCoords.forEach((venue) => {
       const isSelected = selectedVenueId === venue.id;
 
-      const marker = new window.google.maps.Marker({
-        position: { lat: venue.lat, lng: venue.lng },
-        map: mapRef.current,
-        title: venue.name,
-        icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          fillColor: isSelected ? "#22d3ee" : "#f472b6",
-          fillOpacity: 0.95,
-          strokeColor: "#ffffff",
-          strokeWeight: isSelected ? 2 : 1,
-          scale: isSelected ? 10 : 8,
-        },
-      });
+      let marker: any;
 
-      marker.addListener("click", () => {
-        onSelectVenue(venue.id);
-        if (infoWindowRef.current) {
-          infoWindowRef.current.setContent(`<div style=\"color:#111;font-weight:600;\">${venue.name}</div>`);
-          infoWindowRef.current.open({ map: mapRef.current, anchor: marker });
-        }
-      });
+      if (canUseAdvancedMarkers) {
+        const pinElement = new markerApi.PinElement({
+          background: isSelected ? "#22d3ee" : "#d946ef",
+          borderColor: "#ffffff",
+          glyphColor: "#111827",
+          scale: isSelected ? 1.2 : 1,
+        });
+
+        marker = new markerApi.AdvancedMarkerElement({
+          position: { lat: venue.lat, lng: venue.lng },
+          map: mapRef.current,
+          title: venue.name,
+          content: pinElement.element,
+          zIndex: isSelected ? 999 : 1,
+        });
+
+        marker.addListener("click", () => {
+          onSelectVenue(venue.id);
+          if (infoWindowRef.current) {
+            infoWindowRef.current.setContent(`<div style=\"color:#111;font-weight:600;\">${venue.name}</div>`);
+            infoWindowRef.current.open({ map: mapRef.current, anchor: marker });
+          }
+        });
+      } else {
+        // Fallback: crisp vector Symbol marker when AdvancedMarkerElement is unavailable.
+        marker = new window.google.maps.Marker({
+          position: { lat: venue.lat, lng: venue.lng },
+          map: mapRef.current,
+          title: venue.name,
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            fillColor: isSelected ? "#22d3ee" : "#d946ef",
+            fillOpacity: 0.95,
+            strokeColor: "#ffffff",
+            strokeWeight: isSelected ? 2 : 1,
+            scale: isSelected ? 10 : 8,
+          },
+        });
+
+        marker.addListener("click", () => {
+          onSelectVenue(venue.id);
+          if (infoWindowRef.current) {
+            infoWindowRef.current.setContent(`<div style=\"color:#111;font-weight:600;\">${venue.name}</div>`);
+            infoWindowRef.current.open({ map: mapRef.current, anchor: marker });
+          }
+        });
+      }
 
       markersRef.current.set(venue.id, marker);
     });
@@ -226,9 +268,9 @@ export function LiveMap({ venues, selectedVenueId, onSelectVenue, fallbackCenter
       return;
     }
 
-    if (venues.length > 1) {
+    if (venuesWithCoords.length > 1) {
       const bounds = new window.google.maps.LatLngBounds();
-      venues.forEach((venue) => {
+      venuesWithCoords.forEach((venue) => {
         bounds.extend({ lat: venue.lat, lng: venue.lng });
       });
       mapRef.current.fitBounds(bounds, 48);
@@ -237,7 +279,7 @@ export function LiveMap({ venues, selectedVenueId, onSelectVenue, fallbackCenter
 
     mapRef.current.setCenter(mapCenter);
     mapRef.current.setZoom(14);
-  }, [mapCenter, onSelectVenue, selectedVenue, selectedVenueId, venues]);
+  }, [isMapReady, mapCenter, onSelectVenue, selectedVenue, selectedVenueId, venuesWithCoords]);
 
   useEffect(() => {
     if (!containerSize) return;
@@ -265,14 +307,14 @@ export function LiveMap({ venues, selectedVenueId, onSelectVenue, fallbackCenter
 
       <div className="flex items-center justify-between text-xs text-zinc-400">
         <span className="inline-flex items-center gap-1">
-          <MapPinned size={14} /> {venues.length} markers
+          <MapPinned size={14} /> {venuesWithCoords.length} markers
         </span>
         <span>
           DPR: {isClientReady && typeof window !== "undefined" ? window.devicePixelRatio.toFixed(2) : "--"}
         </span>
       </div>
 
-      <div ref={mapContainerRef} className="w-full rounded-2xl border border-white/10 bg-black p-0">
+      <div className="w-full rounded-2xl border border-white/10 bg-black p-0">
         <div
           ref={mapViewportRef}
           className={`w-full overflow-hidden rounded-2xl bg-black ${isExpanded ? "h-[420px]" : "h-[280px] md:h-[320px] lg:h-[400px]"}`}
