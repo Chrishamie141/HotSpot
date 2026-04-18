@@ -64,9 +64,26 @@ export function ProfilePageContent() {
   }
 
   async function onLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+      });
+    } finally {
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.removeItem("nightpulse:feed-posts:v1");
+          window.localStorage.removeItem("nightpulse:favorites:v1");
+          window.sessionStorage.clear();
+        } catch {
+          // noop
+        }
+      }
+
+      router.replace("/login");
+      router.refresh();
+    }
   }
 
   if (!user) {

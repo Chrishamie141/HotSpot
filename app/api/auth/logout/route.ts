@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     await destroySession(token);
   }
 
-  const response = NextResponse.json({ ok: true });
+  const response = NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   clearSessionCookie(response);
   return response;
 }
