@@ -2,19 +2,23 @@ import { composerVenues } from "@/components/feed/mock-feed-data";
 
 export function CreatePostDetails({
   venue,
+  locationTag,
   caption,
   peopleTags,
   vibeScore,
   onVenueChange,
+  onLocationTagChange,
   onCaptionChange,
   onPeopleTagsChange,
   onVibeChange,
 }: {
   venue: string;
+  locationTag: string;
   caption: string;
   peopleTags: string;
   vibeScore: number;
   onVenueChange: (value: string) => void;
+  onLocationTagChange: (value: string) => void;
   onCaptionChange: (value: string) => void;
   onPeopleTagsChange: (value: string) => void;
   onVibeChange: (value: number) => void;
@@ -30,6 +34,13 @@ export function CreatePostDetails({
           <option key={item} value={item}>{item}</option>
         ))}
       </select>
+
+      <input
+        value={locationTag}
+        onChange={(event) => onLocationTagChange(event.target.value)}
+        placeholder="Tag neighborhood or city"
+        className="w-full rounded-xl border border-white/15 bg-[#0c1120] px-3 py-2 text-sm text-white outline-none placeholder:text-zinc-500"
+      />
 
       <textarea
         rows={4}

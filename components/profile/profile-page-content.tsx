@@ -1,121 +1,158 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { AuthModal } from "@/components/profile/auth-modal";
-import { EditProfileFlow } from "@/components/profile/edit-profile-flow";
-import { currentUserProfile, profileHighlights, profilePostsCurrentUser, profilePostsVisitingUser, profileSettings, savedPosts, taggedPosts, visitingProfile } from "@/components/profile/mock-profile-data";
-import { ProfileActionBar } from "@/components/profile/profile-action-bar";
-import { ProfileHeader } from "@/components/profile/profile-header";
-import { ProfileHighlights } from "@/components/profile/profile-highlights";
-import { ProfilePostGrid } from "@/components/profile/profile-post-grid";
-import { ProfileSettingsScreen } from "@/components/profile/profile-settings-screen";
-import { ShareProfileSheet } from "@/components/profile/share-profile-sheet";
-import { ProfileStats } from "@/components/profile/profile-stats";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ChevronRight, LogOut } from "lucide-react";
+import { Card } from "@/components/ui";
+
+type CurrentUser = {
+  id: string;
+  username: string;
+  displayName: string;
+  email: string;
+  bio: string;
+  avatarUrl: string;
+  createdAt: string;
+  privacyEnabled: boolean;
+  notificationsEnabled: boolean;
+  contentPreferencesEnabled: boolean;
+  nightlifePreferences: string[];
+  savedPostIds: string[];
+  taggedPostIds: string[];
+};
 
 export function ProfilePageContent() {
-  const [viewingOwnProfile, setViewingOwnProfile] = useState(true);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followerDelta, setFollowerDelta] = useState(0);
-  const [activeTab, setActiveTab] = useState<"posts" | "tagged" | "saved">("posts");
-  const [selectedHighlight, setSelectedHighlight] = useState<string>();
-  const [openShare, setOpenShare] = useState(false);
-  const [openEdit, setOpenEdit] = useState(false);
-  const [openSettings, setOpenSettings] = useState(false);
-  const [openAuth, setOpenAuth] = useState(false);
-  const [highlightMessage, setHighlightMessage] = useState("");
-  const [currentProfile, setCurrentProfile] = useState(currentUserProfile);
+  const router = useRouter();
+  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [error, setError] = useState("");
 
-  const profile = viewingOwnProfile ? currentProfile : visitingProfile;
+  async function loadProfileData() {
+    const meResponse = await fetch("/api/auth/me", { cache: "no-store" });
+    if (!meResponse.ok) {
+      setError("Could not load your profile.");
+      return;
+    }
 
-  const posts = useMemo(() => (viewingOwnProfile ? profilePostsCurrentUser : profilePostsVisitingUser), [viewingOwnProfile]);
+    const meJson = await meResponse.json();
+    setUser(meJson.user as CurrentUser);
+  }
 
-  const followers = viewingOwnProfile ? profile.followers : profile.followers + followerDelta;
+  useEffect(() => {
+    loadProfileData();
+  }, []);
+
+  const joinedText = useMemo(() => {
+    if (!user?.createdAt) return "Unknown";
+    return new Date(user.createdAt).toLocaleDateString();
+  }, [user?.createdAt]);
+
+  async function onToggle(field: "privacyEnabled" | "notificationsEnabled" | "contentPreferencesEnabled", value: boolean) {
+    const response = await fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: value }),
+    });
+
+    const json = await response.json();
+    if (!response.ok) {
+      setError(json.error ?? "Unable to update setting.");
+      return;
+    }
+
+    setUser(json.user);
+  }
+
+  async function onLogout() {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+      });
+    } finally {
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.removeItem("nightpulse:feed-posts:v1");
+          window.localStorage.removeItem("nightpulse:favorites:v1");
+          window.sessionStorage.clear();
+        } catch {
+          // noop
+        }
+      }
+
+      router.replace("/login");
+      router.refresh();
+    }
+  }
+
+  if (!user) {
+    return <Card className="p-4 text-sm text-zinc-300">Loading profile...</Card>;
+  }
 
   return (
     <section className="space-y-4">
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => {
-            setViewingOwnProfile((x) => !x);
-            setFollowerDelta(0);
-            setIsFollowing(false);
-          }}
-          className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs text-zinc-200"
-        >
-          {viewingOwnProfile ? "View as visitor" : "View as you"}
-        </button>
-      </div>
+      <Card className="rounded-3xl p-5">
+        <div className="flex items-center gap-4">
+          <img src={user.avatarUrl} alt={user.displayName} className="h-16 w-16 rounded-2xl object-cover" />
+          <div>
+            <p className="text-lg font-semibold">{user.displayName}</p>
+            <p className="text-sm text-zinc-400">@{user.username}</p>
+            <p className="text-xs text-zinc-500">Joined {joinedText}</p>
+          </div>
+        </div>
+        <p className="mt-3 text-sm text-zinc-300">{user.bio || "No bio yet."}</p>
+      </Card>
 
-      <ProfileHeader
-        displayName={profile.displayName}
-        username={profile.username}
-        bio={profile.bio}
-        cityLine={profile.cityLine}
-        avatarUrl={profile.avatarUrl}
-      />
+      <Card className="rounded-3xl p-5">
+        <h3 className="mb-3 text-sm font-semibold">Settings</h3>
 
-      <ProfileStats
-        postCount={posts.length}
-        followers={followers}
-        following={profile.following}
-      />
+        <div className="space-y-2">
+          <Link href="/profile/edit" className="flex min-h-11 cursor-pointer items-center justify-between rounded-xl border border-white/10 p-3 text-sm">
+            Edit profile <ChevronRight size={14} />
+          </Link>
+          <Link href="/profile/account" className="flex min-h-11 cursor-pointer items-center justify-between rounded-xl border border-white/10 p-3 text-sm">
+            Account settings <ChevronRight size={14} />
+          </Link>
+          <Link href="/profile/saved-posts" className="flex min-h-11 cursor-pointer items-center justify-between rounded-xl border border-white/10 p-3 text-sm">
+            Saved posts ({user.savedPostIds.length}) <ChevronRight size={14} />
+          </Link>
+          <Link href="/profile/tagged-posts" className="flex min-h-11 cursor-pointer items-center justify-between rounded-xl border border-white/10 p-3 text-sm">
+            Tagged posts ({user.taggedPostIds.length}) <ChevronRight size={14} />
+          </Link>
+          <Link href="/profile/help" className="flex min-h-11 cursor-pointer items-center justify-between rounded-xl border border-white/10 p-3 text-sm">
+            Help & support <ChevronRight size={14} />
+          </Link>
 
-      <ProfileActionBar
-        isCurrentUser={viewingOwnProfile}
-        isFollowing={isFollowing}
-        onFollowToggle={() => {
-          setIsFollowing((prev) => !prev);
-          setFollowerDelta((prev) => (isFollowing ? prev - 1 : prev + 1));
-        }}
-        onShare={() => setOpenShare(true)}
-        onEdit={() => setOpenEdit(true)}
-        onSettings={() => setOpenSettings(true)}
-      />
+          <button
+            type="button"
+            onClick={onLogout}
+            className="flex min-h-11 w-full cursor-pointer items-center justify-between rounded-xl border border-rose-300/40 bg-rose-500/10 p-3 text-sm font-semibold text-rose-100 active:scale-[0.99]"
+            aria-label="Log out"
+          >
+            <span className="inline-flex items-center gap-2"><LogOut size={14} /> Log out</span>
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </Card>
 
-      <ProfileHighlights
-        highlights={profileHighlights}
-        selectedId={selectedHighlight}
-        onSelect={(highlightId) => {
-          setSelectedHighlight(highlightId);
-          const highlight = profileHighlights.find((item) => item.id === highlightId);
-          setHighlightMessage(highlight ? `${highlight.title} opened.` : "");
-        }}
-      />
+      <Card className="rounded-3xl p-5 space-y-3">
+        <h3 className="text-sm font-semibold">Quick settings</h3>
+        <label className="flex items-center justify-between text-sm">
+          Privacy
+          <input type="checkbox" checked={user.privacyEnabled} onChange={(e) => onToggle("privacyEnabled", e.target.checked)} />
+        </label>
+        <label className="flex items-center justify-between text-sm">
+          Notifications
+          <input type="checkbox" checked={user.notificationsEnabled} onChange={(e) => onToggle("notificationsEnabled", e.target.checked)} />
+        </label>
+        <label className="flex items-center justify-between text-sm">
+          Content preferences
+          <input type="checkbox" checked={user.contentPreferencesEnabled} onChange={(e) => onToggle("contentPreferencesEnabled", e.target.checked)} />
+        </label>
+      </Card>
 
-      {highlightMessage ? <p className="text-xs text-cyan-200">{highlightMessage}</p> : null}
-
-      <ProfilePostGrid
-        posts={posts}
-        taggedPosts={taggedPosts}
-        savedPosts={savedPosts}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
-
-      <ShareProfileSheet open={openShare} username={profile.username} onClose={() => setOpenShare(false)} />
-      <EditProfileFlow
-        open={openEdit}
-        profile={profile}
-        onClose={() => setOpenEdit(false)}
-        onSave={(changes) => setCurrentProfile((prev) => ({ ...prev, ...changes }))}
-      />
-      <ProfileSettingsScreen
-        open={openSettings}
-        items={profileSettings}
-        onClose={() => setOpenSettings(false)}
-        onOpenAuth={() => setOpenAuth(true)}
-        onOpenEdit={() => setOpenEdit(true)}
-        onNavigateTab={(tab) => {
-          setActiveTab(tab);
-          setOpenSettings(false);
-        }}
-      />
-      <AuthModal
-        open={openAuth}
-        onClose={() => setOpenAuth(false)}
-        onUsernameCommitted={(username) => setCurrentProfile((prev) => ({ ...prev, username }))}
-      />
+      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
     </section>
   );
 }

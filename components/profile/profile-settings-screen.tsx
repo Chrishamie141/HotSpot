@@ -1,9 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronRight, X } from "lucide-react";
 
 const toggleItems = new Set(["Privacy", "Notifications", "Content preferences", "Nightlife preferences"]);
+
+function isLogoutItem(item: string) {
+  return item.trim().toLowerCase() === "log out";
+}
 
 export function ProfileSettingsScreen({
   open,
@@ -20,6 +25,7 @@ export function ProfileSettingsScreen({
   onOpenEdit: () => void;
   onNavigateTab: (tab: "posts" | "tagged" | "saved") => void;
 }) {
+  const router = useRouter();
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     Privacy: true,
     Notifications: true,
@@ -27,8 +33,37 @@ export function ProfileSettingsScreen({
     "Nightlife preferences": true,
   });
   const [message, setMessage] = useState("");
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   if (!open) return null;
+
+  async function handleLogout() {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+      });
+    } finally {
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.removeItem("nightpulse:feed-posts:v1");
+          window.localStorage.removeItem("nightpulse:favorites:v1");
+          window.sessionStorage.clear();
+        } catch {
+          // noop
+        }
+      }
+
+      onClose();
+      router.replace("/login");
+      router.refresh();
+      setIsLoggingOut(false);
+    }
+  }
 
   function handleItemClick(item: string) {
     setMessage("");
@@ -37,8 +72,11 @@ export function ProfileSettingsScreen({
     if (item === "Account settings") return onOpenAuth();
     if (item === "Saved posts") return onNavigateTab("saved");
     if (item === "Tagged posts") return onNavigateTab("tagged");
-    if (item === "Log out") return setMessage("Logged out (mock session cleared).");
-    if (item === "Help & support") return setMessage("Support chat opening soon. Email: help@nightpulse.app");
+    if (isLogoutItem(item)) {
+      void handleLogout();
+      return;
+    }
+    if (item === "Help & support") return setMessage("Support contact: support@nightpulse.app");
 
     if (toggleItems.has(item)) {
       setToggles((current) => ({ ...current, [item]: !current[item] }));
@@ -62,9 +100,14 @@ export function ProfileSettingsScreen({
               key={item}
               type="button"
               onClick={() => handleItemClick(item)}
-              className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-left text-sm text-zinc-200"
+              disabled={isLoggingOut && isLogoutItem(item)}
+              className={`flex min-h-11 w-full cursor-pointer items-center justify-between rounded-xl border px-3 py-2.5 text-left text-sm ${
+                isLogoutItem(item)
+                  ? "border-rose-300/40 bg-rose-500/10 text-rose-100"
+                  : "border-white/10 bg-black/20 text-zinc-200"
+              } ${isLoggingOut && isLogoutItem(item) ? "opacity-60" : ""}`}
             >
-              <span>{item}</span>
+              <span>{isLoggingOut && isLogoutItem(item) ? "Logging out..." : item}</span>
               {toggleItems.has(item) ? (
                 <span className={`rounded-full px-2 py-0.5 text-[11px] ${toggles[item] ? "bg-cyan-500/15 text-cyan-200" : "bg-zinc-700/40 text-zinc-400"}`}>
                   {toggles[item] ? "On" : "Off"}

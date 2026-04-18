@@ -2,7 +2,9 @@ export type FeedVibeLabel = "Chill" | "Calm" | "Active" | "Lit" | "Crazy";
 
 export type FeedPost = {
   id: string;
+  userId?: string;
   username: string;
+  displayName?: string;
   avatarUrl: string;
   venue: string;
   location: string;

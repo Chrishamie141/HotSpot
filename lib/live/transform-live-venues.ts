@@ -1,6 +1,6 @@
 import { ExploreVenue } from "@/lib/explore/types";
 
-export type LiveStatus = "packed" | "moderate" | "chill";
+export type LiveStatus = "high" | "moderate" | "low";
 export type LiveTrend = "rising" | "falling" | "stable";
 
 export type LiveVenue = {
@@ -46,9 +46,9 @@ function resolveTrend(momentum: number): LiveTrend {
 }
 
 function resolveStatus(activity: number): LiveStatus {
-  if (activity >= 72) return "packed";
+  if (activity >= 72) return "high";
   if (activity >= 50) return "moderate";
-  return "chill";
+  return "low";
 }
 
 function estimateWaitMinutes(activity: number, openNow: boolean | null, distanceMiles: number | null) {

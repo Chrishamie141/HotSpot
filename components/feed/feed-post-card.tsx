@@ -11,7 +11,8 @@ export function FeedPostCard({ post, onToggleHeart }: { post: FeedPost; onToggle
       <header className="flex items-center gap-3 px-4 pb-3 pt-4">
         <Image src={post.avatarUrl} alt={`${post.username} avatar`} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-zinc-50">{post.username}</p>
+          <p className="truncate text-sm font-semibold text-zinc-50">{post.displayName ?? post.username}</p>
+          <p className="truncate text-xs text-zinc-400">{post.username}</p>
           <p className="inline-flex items-center gap-1 truncate text-xs text-cyan-200">
             <MapPin size={12} /> {post.venue}
           </p>
