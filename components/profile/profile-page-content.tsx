@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, LogOut } from "lucide-react";
 import { Card } from "@/components/ui";
 
 type CurrentUser = {
@@ -108,21 +108,31 @@ export function ProfilePageContent() {
         <h3 className="mb-3 text-sm font-semibold">Settings</h3>
 
         <div className="space-y-2">
-          <Link href="/profile/edit" className="flex items-center justify-between rounded-xl border border-white/10 p-3 text-sm">
+          <Link href="/profile/edit" className="flex min-h-11 cursor-pointer items-center justify-between rounded-xl border border-white/10 p-3 text-sm">
             Edit profile <ChevronRight size={14} />
           </Link>
-          <Link href="/profile/account" className="flex items-center justify-between rounded-xl border border-white/10 p-3 text-sm">
+          <Link href="/profile/account" className="flex min-h-11 cursor-pointer items-center justify-between rounded-xl border border-white/10 p-3 text-sm">
             Account settings <ChevronRight size={14} />
           </Link>
-          <Link href="/profile/saved-posts" className="flex items-center justify-between rounded-xl border border-white/10 p-3 text-sm">
+          <Link href="/profile/saved-posts" className="flex min-h-11 cursor-pointer items-center justify-between rounded-xl border border-white/10 p-3 text-sm">
             Saved posts ({user.savedPostIds.length}) <ChevronRight size={14} />
           </Link>
-          <Link href="/profile/tagged-posts" className="flex items-center justify-between rounded-xl border border-white/10 p-3 text-sm">
+          <Link href="/profile/tagged-posts" className="flex min-h-11 cursor-pointer items-center justify-between rounded-xl border border-white/10 p-3 text-sm">
             Tagged posts ({user.taggedPostIds.length}) <ChevronRight size={14} />
           </Link>
-          <Link href="/profile/help" className="flex items-center justify-between rounded-xl border border-white/10 p-3 text-sm">
+          <Link href="/profile/help" className="flex min-h-11 cursor-pointer items-center justify-between rounded-xl border border-white/10 p-3 text-sm">
             Help & support <ChevronRight size={14} />
           </Link>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            className="flex min-h-11 w-full cursor-pointer items-center justify-between rounded-xl border border-rose-300/40 bg-rose-500/10 p-3 text-sm font-semibold text-rose-100 active:scale-[0.99]"
+            aria-label="Log out"
+          >
+            <span className="inline-flex items-center gap-2"><LogOut size={14} /> Log out</span>
+            <ChevronRight size={14} />
+          </button>
         </div>
       </Card>
 
@@ -141,10 +151,6 @@ export function ProfilePageContent() {
           <input type="checkbox" checked={user.contentPreferencesEnabled} onChange={(e) => onToggle("contentPreferencesEnabled", e.target.checked)} />
         </label>
       </Card>
-
-      <button onClick={onLogout} className="w-full rounded-xl border border-rose-300/40 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-100">
-        Log out
-      </button>
 
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
     </section>
