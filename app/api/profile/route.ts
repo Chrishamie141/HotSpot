@@ -18,6 +18,7 @@ export async function PATCH(request: NextRequest) {
       bio: typeof body.bio === "string" ? body.bio : undefined,
       avatarUrl: typeof body.avatarUrl === "string" ? body.avatarUrl : undefined,
       username: typeof body.username === "string" ? body.username : undefined,
+      email: typeof body.email === "string" ? body.email : undefined,
       privacyEnabled: typeof body.privacyEnabled === "boolean" ? body.privacyEnabled : undefined,
       notificationsEnabled: typeof body.notificationsEnabled === "boolean" ? body.notificationsEnabled : undefined,
       contentPreferencesEnabled: typeof body.contentPreferencesEnabled === "boolean" ? body.contentPreferencesEnabled : undefined,

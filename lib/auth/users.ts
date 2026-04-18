@@ -108,6 +108,7 @@ export async function updateUserProfile(
       | "bio"
       | "avatarUrl"
       | "username"
+      | "email"
       | "privacyEnabled"
       | "notificationsEnabled"
       | "contentPreferencesEnabled"
@@ -130,6 +131,18 @@ export async function updateUserProfile(
     );
     if (duplicate) return { error: "Username is already taken." as const };
     users[index].username = nextUsername;
+  }
+
+
+  if (typeof updates.email === "string") {
+    const nextEmail = updates.email.trim().toLowerCase();
+    if (nextEmail && nextEmail !== users[index].email.toLowerCase()) {
+      const duplicateEmail = users.some(
+        (user) => user.id !== userId && user.email.toLowerCase() === nextEmail
+      );
+      if (duplicateEmail) return { error: "Email is already in use." as const };
+      users[index].email = nextEmail;
+    }
   }
 
   if (typeof updates.displayName === "string") users[index].displayName = updates.displayName.trim() || users[index].displayName;
