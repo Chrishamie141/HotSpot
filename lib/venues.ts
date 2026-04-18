@@ -32,7 +32,38 @@ function getBaseUrl() {
     return `https://${process.env.VERCEL_URL}`;
   }
 
-  return "http://localhost:3000";
+  return "";
+}
+
+function getFallbackVenues(): ExploreVenue[] {
+  return [
+    {
+      id: "fallback-no-venues",
+      googlePlaceId: "fallback-no-venues",
+      name: "No venues available",
+      address: "Check connection",
+      photoUrl: null,
+      rating: null,
+      totalReviews: 0,
+      priceLevel: null,
+      isOpenNow: null,
+      openState: "hours_unavailable",
+      distanceMeters: 0,
+      distanceMiles: 0,
+      crowdLabel: "Quiet",
+      buzzScore: 0,
+      lat: 0,
+      lng: 0,
+      types: [],
+      aiClassification: "unclear",
+      nightlifeRelevanceScore: 0,
+      confidence: 0,
+      // extra fallback fields requested for safer UI states
+      waitTime: 0,
+      distance: 0,
+      status: "unknown",
+    } as ExploreVenue,
+  ];
 }
 
 export async function getExploreVenues(
@@ -60,7 +91,12 @@ export async function getExploreVenues(
     params.set("lng", String(lng));
   }
 
-  const url = `${getBaseUrl()}/api/venues/nearby?${params.toString()}`;
+  const baseUrl = getBaseUrl();
+  const url = baseUrl
+    ? `${baseUrl}/api/venues/nearby?${params.toString()}`
+    : `/api/venues/nearby?${params.toString()}`;
+
+  console.log("Fetching venues from:", url);
 
   try {
     const response = await fetch(url, {
@@ -68,21 +104,37 @@ export async function getExploreVenues(
       cache: "no-store",
     });
 
+    console.log("Status:", response.status);
+
     if (!response.ok) {
       console.error("[getExploreVenues] request failed", response.status, url);
-      return [];
+      return getFallbackVenues();
     }
 
-    const json = (await response.json()) as NearbyResponse;
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      console.error("[getExploreVenues] invalid content-type", contentType, url);
+      return getFallbackVenues();
+    }
+
+    const rawBody = await response.text();
+    let json: NearbyResponse;
+
+    try {
+      json = JSON.parse(rawBody) as NearbyResponse;
+    } catch (parseError) {
+      console.error("[getExploreVenues] JSON parse failed", parseError);
+      return getFallbackVenues();
+    }
 
     if (!json || !Array.isArray(json.data)) {
       console.warn("[getExploreVenues] unexpected response shape", json);
-      return [];
+      return getFallbackVenues();
     }
 
     return json.data;
   } catch (error) {
-    console.error("[getExploreVenues] unexpected error", error);
-    return [];
+    console.error("Venue fetch failed:", error);
+    return getFallbackVenues();
   }
 }
