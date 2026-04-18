@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronRight, X } from "lucide-react";
 
 const toggleItems = new Set(["Privacy", "Notifications", "Content preferences", "Nightlife preferences"]);
@@ -20,6 +21,7 @@ export function ProfileSettingsScreen({
   onOpenEdit: () => void;
   onNavigateTab: (tab: "posts" | "tagged" | "saved") => void;
 }) {
+  const router = useRouter();
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     Privacy: true,
     Notifications: true,
@@ -30,6 +32,30 @@ export function ProfileSettingsScreen({
 
   if (!open) return null;
 
+  async function handleLogout() {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+      });
+    } finally {
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.removeItem("nightpulse:feed-posts:v1");
+          window.localStorage.removeItem("nightpulse:favorites:v1");
+          window.sessionStorage.clear();
+        } catch {
+          // noop
+        }
+      }
+
+      onClose();
+      router.replace("/login");
+      router.refresh();
+    }
+  }
+
   function handleItemClick(item: string) {
     setMessage("");
 
@@ -37,8 +63,11 @@ export function ProfileSettingsScreen({
     if (item === "Account settings") return onOpenAuth();
     if (item === "Saved posts") return onNavigateTab("saved");
     if (item === "Tagged posts") return onNavigateTab("tagged");
-    if (item === "Log out") return setMessage("Logged out (mock session cleared).");
-    if (item === "Help & support") return setMessage("Support chat opening soon. Email: help@nightpulse.app");
+    if (item === "Log out") {
+      void handleLogout();
+      return;
+    }
+    if (item === "Help & support") return setMessage("Support contact: support@nightpulse.app");
 
     if (toggleItems.has(item)) {
       setToggles((current) => ({ ...current, [item]: !current[item] }));
@@ -62,7 +91,7 @@ export function ProfileSettingsScreen({
               key={item}
               type="button"
               onClick={() => handleItemClick(item)}
-              className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-left text-sm text-zinc-200"
+              className="flex min-h-11 w-full cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-left text-sm text-zinc-200"
             >
               <span>{item}</span>
               {toggleItems.has(item) ? (
