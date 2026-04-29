@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AuthModal } from "@/components/profile/auth-modal";
 import { EditProfileFlow } from "@/components/profile/edit-profile-flow";
-import { currentUserProfile, profileHighlights, profilePostsCurrentUser, profilePostsVisitingUser, profileSettings, savedPosts, taggedPosts, visitingProfile } from "@/components/profile/mock-profile-data";
+import { profileHighlights, profileSettings } from "@/components/profile/mock-profile-data";
+import type { FeedPost } from "@/components/feed/types";
 import { ProfileActionBar } from "@/components/profile/profile-action-bar";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfileHighlights } from "@/components/profile/profile-highlights";
@@ -13,7 +14,7 @@ import { ShareProfileSheet } from "@/components/profile/share-profile-sheet";
 import { ProfileStats } from "@/components/profile/profile-stats";
 
 export function ProfilePageContent() {
-  const [viewingOwnProfile, setViewingOwnProfile] = useState(true);
+  const [viewingOwnProfile] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerDelta, setFollowerDelta] = useState(0);
   const [activeTab, setActiveTab] = useState<"posts" | "tagged" | "saved">("posts");
@@ -23,30 +24,32 @@ export function ProfilePageContent() {
   const [openSettings, setOpenSettings] = useState(false);
   const [openAuth, setOpenAuth] = useState(false);
   const [highlightMessage, setHighlightMessage] = useState("");
-  const [currentProfile, setCurrentProfile] = useState(currentUserProfile);
+  const [currentProfile, setCurrentProfile] = useState({
+    displayName: "User",
+    username: "@user",
+    bio: "",
+    cityLine: "",
+    avatarUrl: "",
+    followers: 0,
+    following: 0,
+    isCurrentUser: true,
+  });
+  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const profile = currentProfile;
 
-  const profile = viewingOwnProfile ? currentProfile : visitingProfile;
-
-  const posts = useMemo(() => (viewingOwnProfile ? profilePostsCurrentUser : profilePostsVisitingUser), [viewingOwnProfile]);
+  useEffect(() => {
+    fetch("/api/social/profile")
+      .then((response) => response.json())
+      .then((data) => {
+        setCurrentProfile((prev) => ({ ...prev, ...data.profile, isCurrentUser: true }));
+        setPosts(data.posts ?? []);
+      });
+  }, []);
 
   const followers = viewingOwnProfile ? profile.followers : profile.followers + followerDelta;
 
   return (
     <section className="space-y-4">
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => {
-            setViewingOwnProfile((x) => !x);
-            setFollowerDelta(0);
-            setIsFollowing(false);
-          }}
-          className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs text-zinc-200"
-        >
-          {viewingOwnProfile ? "View as visitor" : "View as you"}
-        </button>
-      </div>
-
       <ProfileHeader
         displayName={profile.displayName}
         username={profile.username}
@@ -62,7 +65,7 @@ export function ProfilePageContent() {
       />
 
       <ProfileActionBar
-        isCurrentUser={viewingOwnProfile}
+        isCurrentUser
         isFollowing={isFollowing}
         onFollowToggle={() => {
           setIsFollowing((prev) => !prev);
@@ -85,13 +88,7 @@ export function ProfilePageContent() {
 
       {highlightMessage ? <p className="text-xs text-cyan-200">{highlightMessage}</p> : null}
 
-      <ProfilePostGrid
-        posts={posts}
-        taggedPosts={taggedPosts}
-        savedPosts={savedPosts}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+      <ProfilePostGrid posts={posts} taggedPosts={[]} savedPosts={[]} activeTab={activeTab} onTabChange={setActiveTab} />
 
       <ShareProfileSheet open={openShare} username={profile.username} onClose={() => setOpenShare(false)} />
       <EditProfileFlow

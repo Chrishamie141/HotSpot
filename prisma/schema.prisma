@@ -42,6 +42,94 @@ model User {
   ownerClaims       OwnerClaim[]
   reportFlags       ReportFlag[]
   auditLogs         AuditLog[]
+  socialProfile     SocialProfile?
+  socialPosts       SocialPost[]
+  stories           SocialStory[]
+  followers         SocialFollow[] @relation("social_following")
+  following         SocialFollow[] @relation("social_follower")
+  postLikes         SocialLike[]
+  comments          SocialComment[]
+}
+
+model SocialProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  handle       String   @unique
+  displayName  String
+  bio          String?
+  cityLine     String?
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SocialPost {
+  id             String        @id @default(cuid())
+  userId         String
+  venueName      String?
+  location       String?
+  caption        String
+  vibeScore      Int?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media          SocialMedia[]
+  likes          SocialLike[]
+  comments       SocialComment[]
+}
+
+model SocialMedia {
+  id           String     @id @default(cuid())
+  postId       String
+  mediaUrl     String
+  mediaType    String
+  thumbnailUrl String?
+  createdAt    DateTime   @default(now())
+  post         SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model SocialStory {
+  id         String   @id @default(cuid())
+  userId     String
+  title      String?
+  subtitle   String?
+  mediaUrl   String?
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SocialFollow {
+  id           String   @id @default(cuid())
+  followerId   String
+  followingId  String
+  createdAt    DateTime @default(now())
+  follower     User     @relation("social_follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following    User     @relation("social_following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+}
+
+model SocialLike {
+  id        String     @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime   @default(now())
+  post      SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
+
+model SocialComment {
+  id        String     @id @default(cuid())
+  postId    String
+  userId    String
+  body      String
+  createdAt DateTime   @default(now())
+  post      SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Venue {
