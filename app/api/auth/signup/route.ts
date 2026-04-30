@@ -31,6 +31,6 @@ export async function POST(request: Request) {
     },
   });
 
-  await setSessionCookie(user.id, false);
+  await setSessionCookie(user.id);
   return NextResponse.json({ ok: true }, { status: 201 });
 }

@@ -8,7 +8,8 @@ export async function GET(request: Request) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!code || !clientId || !clientSecret || !appUrl) return NextResponse.redirect(`${appUrl || ""}/login?error=google`);
+  const authSecret = process.env.AUTH_SECRET || process.env.JWT_SECRET;
+  if (!code || !clientId || !clientSecret || !appUrl || !authSecret) return NextResponse.redirect(`${appUrl || ""}/login?error=google_config`);
 
   const redirectUri = `${appUrl}/api/auth/google/callback`;
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
@@ -39,7 +40,7 @@ export async function GET(request: Request) {
   }
 
   const full = await prisma.user.findUnique({ where: { id: user.id }, include: { socialProfile: true } });
-  await setSessionCookie(user.id, user.socialProfile?.onboardingCompleted ?? false);
+  await setSessionCookie(user.id);
   const destination = full?.socialProfile?.onboardingCompleted ? "/profile" : "/onboarding";
   return NextResponse.redirect(`${appUrl}${destination}`);
 }

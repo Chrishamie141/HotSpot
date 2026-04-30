@@ -14,6 +14,6 @@ export async function POST(request: Request) {
   const matches = await bcrypt.compare(password, user.passwordHash);
   if (!matches) return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
 
-  await setSessionCookie(user.id, user.socialProfile?.onboardingCompleted ?? false);
+  await setSessionCookie(user.id);
   return NextResponse.json({ ok: true });
 }

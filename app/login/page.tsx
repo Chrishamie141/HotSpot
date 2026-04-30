@@ -23,6 +23,11 @@ export default function LoginPage() {
       return;
     }
     const meRes = await fetch("/api/auth/me");
+    if (!meRes.ok) {
+      setStatus("error");
+      setErrorMessage("Unable to load your account.");
+      return;
+    }
     const me = await meRes.json();
     router.replace(me.user?.onboardingCompleted ? "/profile" : "/onboarding");
   }
