@@ -33,17 +33,23 @@ model User {
 }
 
 model SocialProfile {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  handle      String   @unique
-  displayName String
-  bio         String?
-  cityLine    String?
-  avatarUrl   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  handle               String   @unique
+  displayName          String
+  bio                  String?
+  cityLine             String?
+  avatarUrl            String?
+  isPrivate            Boolean  @default(false)
+  notificationsEnabled Boolean  @default(true)
+  showVideos           Boolean  @default(true)
+  showNightlifeEvents  Boolean  @default(true)
+  showFoodSpots        Boolean  @default(true)
+  preferredVibes       Json     @default("[]")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SocialPost {
@@ -226,7 +232,7 @@ model VenueCoverRule {
   dayOfWeek       Int
   coverAmount     Int
   notes           String?
-  updatedByOwner  Boolean @default(false)
+  updatedByOwner  Boolean  @default(false)
   createdAt       DateTime @default(now())
 
   venue           Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)

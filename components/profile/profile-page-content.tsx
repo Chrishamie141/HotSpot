@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { AuthModal } from "@/components/profile/auth-modal";
+import { useEffect, useState } from "react";
 import { EditProfileFlow } from "@/components/profile/edit-profile-flow";
 import { profileHighlights, profileSettings } from "@/components/profile/mock-profile-data";
 import type { FeedPost } from "@/components/feed/types";
@@ -22,7 +21,6 @@ export function ProfilePageContent() {
   const [openShare, setOpenShare] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
-  const [openAuth, setOpenAuth] = useState(false);
   const [highlightMessage, setHighlightMessage] = useState("");
   const [currentProfile, setCurrentProfile] = useState({
     displayName: "User",
@@ -36,6 +34,13 @@ export function ProfilePageContent() {
   });
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const profile = currentProfile;
+
+  async function updateProfile(changes: Record<string, unknown>) {
+    await fetch("/api/social/profile", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(changes) });
+    const data = await fetch("/api/social/profile").then((response) => response.json());
+    setCurrentProfile((prev) => ({ ...prev, ...data.profile, isCurrentUser: true }));
+    setPosts(data.posts ?? []);
+  }
 
   useEffect(() => {
     fetch("/api/social/profile")
@@ -95,23 +100,26 @@ export function ProfilePageContent() {
         open={openEdit}
         profile={profile}
         onClose={() => setOpenEdit(false)}
-        onSave={(changes) => setCurrentProfile((prev) => ({ ...prev, ...changes }))}
+        onSave={async (changes) => {
+          await updateProfile(changes);
+        }}
       />
       <ProfileSettingsScreen
         open={openSettings}
         items={profileSettings}
         onClose={() => setOpenSettings(false)}
-        onOpenAuth={() => setOpenAuth(true)}
+        onOpenAuth={() => {}}
         onOpenEdit={() => setOpenEdit(true)}
         onNavigateTab={(tab) => {
           setActiveTab(tab);
           setOpenSettings(false);
         }}
-      />
-      <AuthModal
-        open={openAuth}
-        onClose={() => setOpenAuth(false)}
-        onUsernameCommitted={(username) => setCurrentProfile((prev) => ({ ...prev, username }))}
+        profile={profile}
+        onUpdateProfile={updateProfile}
+        onLogout={async () => {
+          await fetch("/api/social/logout", { method: "POST" });
+          window.location.href = "/login";
+        }}
       />
     </section>
   );

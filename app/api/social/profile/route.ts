@@ -19,6 +19,14 @@ export async function GET() {
       bio: user.socialProfile?.bio ?? "",
       cityLine: user.socialProfile?.cityLine ?? "",
       avatarUrl: user.socialProfile?.avatarUrl ?? "",
+      email: user.email,
+      accountId: user.id,
+      isPrivate: user.socialProfile?.isPrivate ?? false,
+      notificationsEnabled: user.socialProfile?.notificationsEnabled ?? true,
+      showVideos: user.socialProfile?.showVideos ?? true,
+      showNightlifeEvents: user.socialProfile?.showNightlifeEvents ?? true,
+      showFoodSpots: user.socialProfile?.showFoodSpots ?? true,
+      preferredVibes: user.socialProfile?.preferredVibes ?? [],
       followers,
       following,
       postsCount,
@@ -38,4 +46,49 @@ export async function GET() {
       commentsCount: 0,
     })),
   });
+}
+
+export async function PATCH(request: Request) {
+  const user = await getOrCreateLocalUser();
+  const body = await request.json();
+
+  const handle = body.username ? String(body.username).replace(/^@/, "").trim().toLowerCase() : undefined;
+  const displayName = typeof body.displayName === "string" ? body.displayName.trim() : undefined;
+
+  const profile = await prisma.socialProfile.upsert({
+    where: { userId: user.id },
+    create: {
+      userId: user.id,
+      handle: handle || `user${Date.now()}`,
+      displayName: displayName || user.displayName || "User",
+      bio: body.bio,
+      cityLine: body.cityLine,
+      avatarUrl: body.avatarUrl,
+      isPrivate: body.isPrivate,
+      notificationsEnabled: body.notificationsEnabled,
+      showVideos: body.showVideos,
+      showNightlifeEvents: body.showNightlifeEvents,
+      showFoodSpots: body.showFoodSpots,
+      preferredVibes: body.preferredVibes ?? [],
+    },
+    update: {
+      handle: handle,
+      displayName: displayName,
+      bio: body.bio,
+      cityLine: body.cityLine,
+      avatarUrl: body.avatarUrl,
+      isPrivate: body.isPrivate,
+      notificationsEnabled: body.notificationsEnabled,
+      showVideos: body.showVideos,
+      showNightlifeEvents: body.showNightlifeEvents,
+      showFoodSpots: body.showFoodSpots,
+      preferredVibes: body.preferredVibes,
+    },
+  });
+
+  if (displayName) {
+    await prisma.user.update({ where: { id: user.id }, data: { displayName } });
+  }
+
+  return NextResponse.json({ ok: true, handle: profile.handle });
 }
