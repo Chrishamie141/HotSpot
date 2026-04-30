@@ -6,10 +6,19 @@ import type { FeedPost } from "@/components/feed/types";
 import { FeedVibeMeter } from "@/components/feed/feed-vibe-meter";
 
 export function FeedPostCard({ post, onToggleHeart }: { post: FeedPost; onToggleHeart: (postId: string) => void }) {
+  const avatarInitial = post.username?.replace("@", "").charAt(0).toUpperCase() || "U";
+
   return (
     <article className="overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.03] shadow-[0_18px_60px_rgba(2,6,23,0.55)]">
       <header className="flex items-center gap-3 px-4 pb-3 pt-4">
-        <Image src={post.avatarUrl} alt={`${post.username} avatar`} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
+        {post.avatarUrl ? (
+          <Image src={post.avatarUrl} alt={`${post.username} avatar`} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
+        ) : (
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-500/20 text-sm font-bold text-cyan-200">
+            {avatarInitial}
+          </div>
+        )}
+
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-zinc-50">{post.username}</p>
           <p className="inline-flex items-center gap-1 truncate text-xs text-cyan-200">

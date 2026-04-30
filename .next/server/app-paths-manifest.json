@@ -1,0 +1,10 @@
+{
+  "/api/social/feed/route": "app/api/social/feed/route.js",
+  "/api/venues/nearby/route": "app/api/venues/nearby/route.js",
+  "/feed/page": "app/feed/page.js",
+  "/explore/page": "app/explore/page.js",
+  "/live/page": "app/live/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/favorites/page": "app/favorites/page.js",
+  "/owner/page": "app/owner/page.js"
+}
