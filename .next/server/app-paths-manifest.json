@@ -1,0 +1,9 @@
+{
+  "/api/social/session/route": "app/api/social/session/route.js",
+  "/api/venues/nearby/route": "app/api/venues/nearby/route.js",
+  "/api/social/profile/route": "app/api/social/profile/route.js",
+  "/api/auth/logout/route": "app/api/auth/logout/route.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/profile/page": "app/profile/page.js"
+}
