@@ -46,6 +46,10 @@ model SocialProfile {
   showNightlifeEvents  Boolean  @default(true)
   showFoodSpots        Boolean  @default(true)
   preferredVibes       Json     @default("[]")
+  onboardingCompleted  Boolean  @default(false)
+  preferredCity        String?
+  preferredNightlifeTypes Json  @default("[]")
+  ageRange             String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 

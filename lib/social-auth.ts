@@ -26,6 +26,8 @@ export async function getOrCreateLocalUser() {
           displayName: "New HotSpot User",
           bio: "",
           cityLine: "",
+          onboardingCompleted: false,
+          preferredNightlifeTypes: [],
         },
       },
     },

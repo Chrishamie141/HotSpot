@@ -9,5 +9,6 @@ export async function GET() {
     displayName: user.socialProfile?.displayName ?? user.displayName ?? "User",
     handle: user.socialProfile?.handle ?? "user",
     avatarUrl: user.socialProfile?.avatarUrl ?? null,
+    onboardingCompleted: user.socialProfile?.onboardingCompleted ?? false,
   });
 }

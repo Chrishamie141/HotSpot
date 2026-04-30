@@ -27,6 +27,10 @@ export async function GET() {
       showNightlifeEvents: user.socialProfile?.showNightlifeEvents ?? true,
       showFoodSpots: user.socialProfile?.showFoodSpots ?? true,
       preferredVibes: user.socialProfile?.preferredVibes ?? [],
+      onboardingCompleted: user.socialProfile?.onboardingCompleted ?? false,
+      preferredCity: user.socialProfile?.preferredCity ?? "",
+      preferredNightlifeTypes: user.socialProfile?.preferredNightlifeTypes ?? [],
+      ageRange: user.socialProfile?.ageRange ?? "",
       followers,
       following,
       postsCount,
@@ -70,6 +74,10 @@ export async function PATCH(request: Request) {
       showNightlifeEvents: body.showNightlifeEvents,
       showFoodSpots: body.showFoodSpots,
       preferredVibes: body.preferredVibes ?? [],
+      onboardingCompleted: Boolean(body.onboardingCompleted),
+      preferredCity: typeof body.preferredCity === "string" ? body.preferredCity : null,
+      preferredNightlifeTypes: Array.isArray(body.preferredNightlifeTypes) ? body.preferredNightlifeTypes : [],
+      ageRange: typeof body.ageRange === "string" ? body.ageRange : null,
     },
     update: {
       handle: handle,
@@ -83,6 +91,10 @@ export async function PATCH(request: Request) {
       showNightlifeEvents: body.showNightlifeEvents,
       showFoodSpots: body.showFoodSpots,
       preferredVibes: body.preferredVibes,
+      onboardingCompleted: typeof body.onboardingCompleted === "boolean" ? body.onboardingCompleted : undefined,
+      preferredCity: typeof body.preferredCity === "string" ? body.preferredCity : undefined,
+      preferredNightlifeTypes: Array.isArray(body.preferredNightlifeTypes) ? body.preferredNightlifeTypes : undefined,
+      ageRange: typeof body.ageRange === "string" ? body.ageRange : undefined,
     },
   });
 
