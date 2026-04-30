@@ -1,159 +1,403 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { SlidersHorizontal } from "lucide-react";
-import { VenueCard } from "@/components/venue-card";
-import { Card, Badge } from "@/components/ui";
-import { MapPanel } from "@/components/explore/map-panel";
-import { DEFAULT_DISTANCE_MILES, DISTANCE_OPTIONS } from "@/lib/explore/distance";
-import { CENTRAL_JERSEY_REGIONS, FALLBACK_REGION_KEY, getRegionConfig } from "@/lib/explore/regions";
-import { ExploreVenue, RegionKey } from "@/lib/explore/types";
+import Link from "next/link";
+import {
+  MapPinned,
+  List,
+  SlidersHorizontal,
+  Flame,
+  MapPin,
+  Clock3,
+  Star,
+  X,
+  ChevronDown,
+} from "lucide-react";
 
-const REGION_STORAGE_KEY = "nightpulse:region";
-const DISTANCE_STORAGE_KEY = "nightpulse:distanceMiles";
+type ExploreVenue = {
+  id: string;
+  googlePlaceId?: string;
+  name: string;
+  address: string;
+  photoUrl?: string | null;
+  rating?: number | null;
+  totalReviews?: number;
+  distanceMiles?: number;
+  isOpenNow?: boolean | null;
+  crowdLabel?: string | null;
+  buzzScore?: number;
+};
 
-export function ExploreClient() {
-  const [venues, setVenues] = useState<ExploreVenue[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [region, setRegion] = useState<RegionKey>(FALLBACK_REGION_KEY);
-  const [distanceMiles, setDistanceMiles] = useState<number>(DEFAULT_DISTANCE_MILES);
-  const [openNowOnly, setOpenNowOnly] = useState(false);
-  const [position, setPosition] = useState(getRegionConfig(FALLBACK_REGION_KEY).center);
-  const [locationDenied, setLocationDenied] = useState(false);
+type Props = {
+  initialVenues: ExploreVenue[];
+};
 
-  useEffect(() => {
-    const storedRegion = window.localStorage.getItem(REGION_STORAGE_KEY) as RegionKey | null;
-    const storedDistance = Number(window.localStorage.getItem(DISTANCE_STORAGE_KEY) ?? DEFAULT_DISTANCE_MILES);
+const REGIONS = [
+  { label: "New Brunswick", value: "new-brunswick" },
+  { label: "Old Bridge", value: "old-bridge" },
+  { label: "East Brunswick", value: "east-brunswick" },
+];
 
-    if (storedRegion && CENTRAL_JERSEY_REGIONS.some((option) => option.key === storedRegion)) {
-      setRegion(storedRegion);
-      setPosition(getRegionConfig(storedRegion === "near-me" ? FALLBACK_REGION_KEY : storedRegion).center);
+const DISTANCES = [5, 10, 25, 50];
+
+export default function ExploreClient({ initialVenues }: Props) {
+  const [venues, setVenues] = useState<ExploreVenue[]>(initialVenues ?? []);
+  const [region, setRegion] = useState("new-brunswick");
+  const [distanceMiles, setDistanceMiles] = useState(10);
+  const [openNowOnly, setOpenNowOnly] = useState(true);
+  const [view, setView] = useState<"map" | "list">("list");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function loadVenues() {
+    try {
+      setIsLoading(true);
+
+      const params = new URLSearchParams({
+        region,
+        distanceMiles: String(distanceMiles),
+        openNowOnly: String(openNowOnly),
+      });
+
+      const response = await fetch(`/api/venues/nearby?${params.toString()}`, {
+        cache: "no-store",
+      });
+
+      const json = await response.json();
+      setVenues(Array.isArray(json?.data) ? json.data : []);
+    } catch (error) {
+      console.error("[explore] failed to load venues", error);
+      setVenues([]);
+    } finally {
+      setIsLoading(false);
     }
-
-    if (DISTANCE_OPTIONS.some((option) => option.miles === storedDistance)) {
-      setDistanceMiles(storedDistance);
-    }
-  }, []);
+  }
 
   useEffect(() => {
-    window.localStorage.setItem(REGION_STORAGE_KEY, region);
-    window.localStorage.setItem(DISTANCE_STORAGE_KEY, String(distanceMiles));
-  }, [region, distanceMiles]);
+    loadVenues();
+  }, [region, distanceMiles, openNowOnly]);
 
-  useEffect(() => {
-    if (region !== "near-me") {
-      setLocationDenied(false);
-      setPosition(getRegionConfig(region).center);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (geo) => {
-        setLocationDenied(false);
-        setPosition({ lat: geo.coords.latitude, lng: geo.coords.longitude });
-      },
-      () => {
-        setLocationDenied(true);
-        setRegion(FALLBACK_REGION_KEY);
-        setPosition(getRegionConfig(FALLBACK_REGION_KEY).center);
-      },
-      { timeout: 6000 }
-    );
-  }, [region]);
-
-  const query = useMemo(() => {
-    const params = new URLSearchParams({
-      region,
-      distanceMiles: String(distanceMiles),
-      lat: String(position.lat),
-      lng: String(position.lng)
-    });
-
-    if (openNowOnly) params.set("openNowOnly", "true");
-    return params.toString();
-  }, [distanceMiles, openNowOnly, position.lat, position.lng, region]);
-
-  useEffect(() => {
-    const id = setTimeout(async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(`/api/venues/nearby?${query}`);
-        if (!response.ok) throw new Error("Failed to load venues");
-        const payload = await response.json() as { data?: ExploreVenue[]; error?: string };
-        setVenues(payload.data ?? []);
-      } catch (fetchError) {
-        setError(String(fetchError));
-        setVenues([]);
-      } finally {
-        setLoading(false);
-      }
-    }, 250);
-
-    return () => clearTimeout(id);
-  }, [query]);
-
-  const filterButton = "rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-200 transition hover:bg-white/15";
+  const regionLabel = useMemo(
+    () => REGIONS.find((r) => r.value === region)?.label ?? "New Brunswick",
+    [region]
+  );
 
   return (
-    <section className="space-y-4">
-      <div className="glass rounded-3xl p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Tonight in Central Jersey</h1>
-            <p className="text-sm text-zinc-300">Real nightlife discovery with regional targeting and distance-aware ranking.</p>
+    <div className="w-full min-w-0 overflow-x-hidden pb-28">
+      <section className="mb-4">
+        <div className="flex min-w-0 items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-fuchsia-300/90">
+              Explore
+            </p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              Tonight in Central Jersey
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-zinc-400">
+              Bars, lounges, clubs, comedy spots, and nightlife around you.
+            </p>
           </div>
-          <Badge className="gap-1"><SlidersHorizontal size={12} />Filters</Badge>
         </div>
+      </section>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            className="rounded-full border border-white/20 bg-black/60 px-3 py-1.5 text-xs text-white"
-            value={region}
-            onChange={(event) => setRegion(event.target.value as RegionKey)}
-          >
-            {CENTRAL_JERSEY_REGIONS.map((option) => (
-              <option key={option.key} value={option.key}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+      <section className="sticky top-0 z-20 rounded-[24px] border border-white/10 bg-[#081226]/90 p-3 backdrop-blur-xl">
+        <div className="hidden flex-wrap items-center gap-3 md:flex">
+          <div className="relative">
+            <select
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              className="appearance-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 pr-10 text-sm font-medium text-white outline-none transition hover:bg-white/10"
+            >
+              {REGIONS.map((item) => (
+                <option
+                  key={item.value}
+                  value={item.value}
+                  className="text-black"
+                >
+                  {item.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400"
+              size={16}
+            />
+          </div>
 
-          <div className="flex flex-wrap gap-2">
-            {DISTANCE_OPTIONS.map((option) => (
+          <div className="flex items-center gap-2">
+            {DISTANCES.map((value) => (
               <button
-                key={option.miles}
-                className={`${filterButton} ${distanceMiles === option.miles ? "border-fuchsia-300/60 bg-fuchsia-500/20" : ""}`}
-                onClick={() => setDistanceMiles(option.miles)}
+                key={value}
+                onClick={() => setDistanceMiles(value)}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  distanceMiles === value
+                    ? "bg-white text-black"
+                    : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                }`}
               >
-                {option.label}
+                {value} mi
               </button>
             ))}
           </div>
 
-          <button className={filterButton} onClick={() => setOpenNowOnly((value) => !value)}>
-            {openNowOnly ? "Open now only: on" : "Open now only"}
+          <button
+            onClick={() => setOpenNowOnly((prev) => !prev)}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+              openNowOnly
+                ? "bg-emerald-500 text-black"
+                : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
+            }`}
+          >
+            Open now
           </button>
+
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setView("map")}
+              className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition ${
+                view === "map"
+                  ? "bg-white text-black"
+                  : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
+              }`}
+            >
+              <MapPinned size={16} />
+              Map
+            </button>
+
+            <button
+              onClick={() => setView("list")}
+              className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition ${
+                view === "list"
+                  ? "bg-white text-black"
+                  : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
+              }`}
+            >
+              <List size={16} />
+              List
+            </button>
+
+            <button
+              onClick={() => setIsFilterOpen(true)}
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              <SlidersHorizontal size={16} />
+              Filters
+            </button>
+          </div>
         </div>
 
-        {locationDenied && (
-          <p className="mt-2 text-xs text-amber-300">
-            Location permission was denied. Showing New Brunswick as a fallback.
-          </p>
-        )}
+        <div className="md:hidden">
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-zinc-400">Showing results for</p>
+              <p className="truncate text-sm font-semibold text-white">
+                {regionLabel} · {distanceMiles} mi
+              </p>
+            </div>
+
+            <button
+              onClick={() => setView("map")}
+              className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition ${
+                view === "map"
+                  ? "bg-white text-black"
+                  : "border border-white/10 bg-white/5 text-white"
+              }`}
+            >
+              <MapPinned size={18} />
+            </button>
+
+            <button
+              onClick={() => setView("list")}
+              className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition ${
+                view === "list"
+                  ? "bg-white text-black"
+                  : "border border-white/10 bg-white/5 text-white"
+              }`}
+            >
+              <List size={18} />
+            </button>
+
+            <button
+              onClick={() => setIsFilterOpen(true)}
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white transition hover:bg-white/10"
+            >
+              <SlidersHorizontal size={18} />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <p className="min-w-0 text-sm text-zinc-400">
+          {isLoading
+            ? "Loading nightlife spots..."
+            : `${venues.length} places found${openNowOnly ? " · open now only" : ""}`}
+        </p>
+
+        <button className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-white/10">
+          <Flame size={14} />
+          <span className="hidden sm:inline">Trending neighborhoods</span>
+          <span className="sm:hidden">Trending</span>
+        </button>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-        <Card className="h-[72vh] space-y-3 overflow-y-auto p-3">
-          {loading && Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-32 animate-pulse rounded-3xl bg-white/10" />)}
-          {!loading && error && <p className="rounded-2xl bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
-          {!loading && !error && !venues.length && <p className="rounded-2xl bg-white/5 p-3 text-sm text-zinc-300">No venues found for these filters yet. Try a larger distance.</p>}
-          {!loading && venues.map((venue) => <VenueCard key={venue.id} venue={venue} />)}
-        </Card>
+      {view === "list" ? (
+        <div className="mt-4 grid gap-4">
+          {venues.map((venue) => (
+            <Link
+  key={venue.googlePlaceId ?? venue.id}
+  href={`/venue/${venue.googlePlaceId ?? venue.id}`}
+  className="group block min-w-0 overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,#091327_0%,#08101f_100%)] p-4 shadow-[0_14px_40px_rgba(0,0,0,0.32)] transition duration-200 hover:-translate-y-0.5 hover:border-fuchsia-400/30 hover:shadow-[0_18px_45px_rgba(120,80,255,0.18)]"
+>
+  <div className="flex min-w-0 flex-col gap-4">
+    <div className="h-40 w-full overflow-hidden rounded-[22px] bg-white/5 sm:h-36">
+      {venue.photoUrl ? (
+        <img
+          src={venue.photoUrl}
+          alt={venue.name}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-xs text-zinc-500">
+          No image
+        </div>
+      )}
+    </div>
 
-        <MapPanel center={position} venues={venues} />
+    <div className="min-w-0">
+      <div className="flex min-w-0 flex-wrap items-start gap-2">
+        <h2 className="min-w-0 flex-1 break-words text-lg font-bold leading-tight text-white sm:text-xl">
+          {venue.name}
+        </h2>
+
+        <div className="shrink-0 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-500 px-3 py-1.5 text-center text-xs font-bold text-white shadow-lg">
+          Hot
+        </div>
       </div>
-    </section>
+
+      <p className="mt-3 break-words text-sm text-zinc-300">
+        {venue.address}
+      </p>
+
+      <div className="mt-4 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-300">
+        <span className="inline-flex items-center gap-1">
+          <Star size={15} className="fill-orange-400 text-orange-400" />
+          {venue.rating ?? "—"}
+        </span>
+
+        <span>{venue.totalReviews ?? 0} reviews</span>
+
+        <span className="inline-flex items-center gap-1">
+          <MapPin size={15} />
+          {typeof venue.distanceMiles === "number"
+            ? `${venue.distanceMiles.toFixed(1)} mi`
+            : "Nearby"}
+        </span>
+
+        <span className="inline-flex items-center gap-1">
+          <Clock3 size={15} />
+          {venue.isOpenNow ? "Open now" : "Hours unknown"}
+        </span>
+      </div>
+    </div>
+  </div>
+</Link>
+          ))}
+
+          {!isLoading && venues.length === 0 && (
+            <div className="rounded-[28px] border border-white/10 bg-white/5 p-6 text-sm text-zinc-300">
+              No venues found for this filter set.
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="mt-4 rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,#091327_0%,#08101f_100%)] p-5 text-sm text-zinc-300">
+          Map view placeholder
+        </div>
+      )}
+
+      {isFilterOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <button
+            onClick={() => setIsFilterOpen(false)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          />
+
+          <div className="absolute bottom-0 left-0 right-0 rounded-t-[28px] border-t border-white/10 bg-[#081226] p-5 shadow-2xl">
+            <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-white/20" />
+
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">Filters</h3>
+              <button
+                onClick={() => setIsFilterOpen(false)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <p className="mb-2 text-sm font-semibold text-white">Region</p>
+                <select
+                  value={region}
+                  onChange={(e) => setRegion(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none"
+                >
+                  {REGIONS.map((item) => (
+                    <option
+                      key={item.value}
+                      value={item.value}
+                      className="text-black"
+                    >
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <p className="mb-2 text-sm font-semibold text-white">
+                  Distance
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {DISTANCES.map((value) => (
+                    <button
+                      key={value}
+                      onClick={() => setDistanceMiles(value)}
+                      className={`rounded-2xl px-3 py-3 text-sm font-semibold transition ${
+                        distanceMiles === value
+                          ? "bg-white text-black"
+                          : "border border-white/10 bg-white/5 text-white"
+                      }`}
+                    >
+                      {value} mi
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={() => setOpenNowOnly((prev) => !prev)}
+                className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                  openNowOnly
+                    ? "bg-emerald-500 text-black"
+                    : "border border-white/10 bg-white/5 text-white"
+                }`}
+              >
+                Open now only: {openNowOnly ? "On" : "Off"}
+              </button>
+
+              <button
+                onClick={() => setIsFilterOpen(false)}
+                className="w-full rounded-2xl bg-gradient-to-r from-fuchsia-500 to-violet-500 px-4 py-3 text-sm font-bold text-white"
+              >
+                Apply filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

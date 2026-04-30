@@ -3,79 +3,183 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  USER
-  OWNER
-  ADMIN
-}
-
-enum CrowdLabel {
-  DEAD
-  SLOW
-  ACTIVE
-  HOT
-  PACKED
-}
-
-enum ConfidenceLevel {
-  LOW
-  MEDIUM
-  HIGH
-}
-
 model User {
-  id                String          @id @default(cuid())
-  email             String          @unique
-  displayName       String?
-  role              UserRole        @default(USER)
-  reputationScore   Int             @default(50)
-  homeNeighborhood  String?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  liveUpdates       LiveUpdate[]
-  favoriteVenues    FavoriteVenue[]
-  ownerClaims       OwnerClaim[]
-  reportFlags       ReportFlag[]
-  auditLogs         AuditLog[]
+  id               String          @id @default(cuid())
+  email            String          @unique
+  displayName      String?
+  passwordHash     String?
+  provider         String?
+  providerAccountId String?
+  role             String          @default("USER")
+  reputationScore  Int             @default(50)
+  homeNeighborhood String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  liveUpdates      LiveUpdate[]
+  favoriteVenues   FavoriteVenue[]
+  ownerClaims      OwnerClaim[]
+  reportFlags      ReportFlag[]
+  auditLogs        AuditLog[]
+
+  socialProfile    SocialProfile?
+  socialPosts      SocialPost[]
+  stories          SocialStory[]
+  followers        SocialFollow[]  @relation("social_following")
+  following        SocialFollow[]  @relation("social_follower")
+  postLikes        SocialLike[]
+  comments         SocialComment[]
+}
+
+model SocialProfile {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  handle               String   @unique
+  displayName          String
+  bio                  String?
+  cityLine             String?
+  avatarUrl            String?
+  isPrivate            Boolean  @default(false)
+  notificationsEnabled Boolean  @default(true)
+  showVideos           Boolean  @default(true)
+  showNightlifeEvents  Boolean  @default(true)
+  showFoodSpots        Boolean  @default(true)
+  preferredVibes       Json?
+  onboarding           Json?
+  onboardingCompleted  Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SocialPost {
+  id        String          @id @default(cuid())
+  userId    String
+  venueName String?
+  location  String?
+  caption   String
+  vibeScore Int?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media     SocialMedia[]
+  likes     SocialLike[]
+  comments  SocialComment[]
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model SocialMedia {
+  id           String     @id @default(cuid())
+  postId       String
+  mediaUrl     String
+  mediaType    String
+  thumbnailUrl String?
+  createdAt    DateTime   @default(now())
+
+  post         SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+model SocialStory {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String?
+  subtitle  String?
+  mediaUrl  String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model SocialFollow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower    User     @relation("social_follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("social_following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model SocialLike {
+  id        String     @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime   @default(now())
+
+  post      SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model SocialComment {
+  id        String     @id @default(cuid())
+  postId    String
+  userId    String
+  body      String
+  createdAt DateTime   @default(now())
+
+  post      SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([userId])
 }
 
 model Venue {
-  id                    String              @id @default(cuid())
-  googlePlaceId         String              @unique
-  name                  String
-  type                  String
-  neighborhood          String
-  address               String
-  latitude              Float
-  longitude             Float
-  phone                 String?
-  website               String?
-  rating                Float?
-  reviewCount           Int                 @default(0)
-  openNow               Boolean             @default(false)
-  ageLimit              String?
-  vibeSummary           String?
-  lineStatus            String?             @default("no line")
-  coverTonight          Int?
-  liveCrowdLabel        CrowdLabel          @default(SLOW)
-  liveConfidence        ConfidenceLevel     @default(LOW)
-  comparedToUsual       String?             @default("normal")
-  lastUpdatedAt         DateTime?
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  photos                VenuePhoto[]
-  tags                  VenueTag[]
-  events                VenueEvent[]
-  dressCode             VenueDressCode?
-  coverRules            VenueCoverRule[]
-  liveUpdates           LiveUpdate[]
-  buzzScoreSnapshots    BuzzScoreSnapshot[]
-  favorites             FavoriteVenue[]
-  claims                OwnerClaim[]
+  id                 String              @id @default(cuid())
+  googlePlaceId      String              @unique
+  name               String
+  type               String
+  neighborhood       String
+  address            String
+  latitude           Float
+  longitude          Float
+  phone              String?
+  website            String?
+  rating             Float?
+  reviewCount        Int                 @default(0)
+  openNow            Boolean             @default(false)
+  ageLimit           String?
+  vibeSummary        String?
+  lineStatus         String?             @default("no line")
+  coverTonight       Int?
+  liveCrowdLabel     String              @default("SLOW")
+  liveConfidence     String              @default("LOW")
+  comparedToUsual    String?             @default("normal")
+  lastUpdatedAt      DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  photos             VenuePhoto[]
+  tags               VenueTag[]
+  events             VenueEvent[]
+  dressCode          VenueDressCode?
+  coverRules         VenueCoverRule[]
+  liveUpdates        LiveUpdate[]
+  buzzScoreSnapshots BuzzScoreSnapshot[]
+  favorites          FavoriteVenue[]
+  claims             OwnerClaim[]
 }
 
 model VenuePhoto {
@@ -84,7 +188,10 @@ model VenuePhoto {
   imageUrl  String
   caption   String?
   createdAt DateTime @default(now())
+
   venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId])
 }
 
 model VenueTag {
@@ -92,7 +199,10 @@ model VenueTag {
   venueId   String
   tag       String
   createdAt DateTime @default(now())
+
   venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId])
 }
 
 model VenueEvent {
@@ -104,7 +214,10 @@ model VenueEvent {
   endsAt      DateTime?
   flyerUrl    String?
   createdAt   DateTime @default(now())
+
   venue       Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId])
 }
 
 model VenueDressCode {
@@ -114,50 +227,61 @@ model VenueDressCode {
   policySummary  String
   updatedByOwner Boolean  @default(false)
   updatedAt      DateTime @default(now())
+
   venue          Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
 }
 
 model VenueCoverRule {
-  id            String   @id @default(cuid())
-  venueId       String
-  dayOfWeek     Int
-  coverAmount   Int
-  notes         String?
-  updatedByOwner Boolean @default(false)
-  createdAt     DateTime @default(now())
-  venue         Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  venueId         String
+  dayOfWeek       Int
+  coverAmount     Int
+  notes           String?
+  updatedByOwner  Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  venue           Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId])
 }
 
 model LiveUpdate {
-  id               String    @id @default(cuid())
-  venueId          String
-  userId           String
-  crowdLabel       CrowdLabel
-  lineStatus       String
-  coverAmount      Int?
-  dressStrictness  String?
-  vibeNotes        String?
-  trustWeight      Float     @default(1)
-  proximityMeters  Int?
-  expiresAt        DateTime
-  createdAt        DateTime  @default(now())
-  flagged          Boolean   @default(false)
-  venue            Venue     @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  venueId         String
+  userId          String
+  crowdLabel      String
+  lineStatus      String
+  coverAmount     Int?
+  dressStrictness String?
+  vibeNotes       String?
+  trustWeight     Float    @default(1)
+  proximityMeters Int?
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+  flagged         Boolean  @default(false)
+
+  venue           Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([venueId])
+  @@index([userId])
 }
 
 model BuzzScoreSnapshot {
-  id               String          @id @default(cuid())
-  venueId          String
-  score            Int
-  crowdLabel       CrowdLabel
-  confidence       ConfidenceLevel
-  comparedToUsual  String
-  lineEstimate     String
-  summaryReason    String
-  signalPayload    Json
-  capturedAt       DateTime        @default(now())
-  venue            Venue           @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  venueId         String
+  score           Int
+  crowdLabel      String
+  confidence      String
+  comparedToUsual String
+  lineEstimate    String
+  summaryReason   String
+  signalPayload   Json
+  capturedAt      DateTime @default(now())
+
+  venue           Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId])
 }
 
 model FavoriteVenue {
@@ -165,49 +289,62 @@ model FavoriteVenue {
   userId    String
   venueId   String
   createdAt DateTime @default(now())
+
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
 
   @@unique([userId, venueId])
+  @@index([userId])
+  @@index([venueId])
 }
 
 model OwnerClaim {
-  id         String   @id @default(cuid())
-  userId     String
-  venueId    String
-  status     String   @default("pending")
+  id          String   @id @default(cuid())
+  userId      String
+  venueId     String
+  status      String   @default("pending")
   evidenceUrl String?
-  createdAt  DateTime @default(now())
-  reviewedAt DateTime?
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  venue      Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  reviewedAt  DateTime?
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  venue       Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([venueId])
 }
 
 model NeighborhoodTrend {
-  id               String   @id @default(cuid())
-  neighborhood     String
-  trendScore       Int
-  dominantVibe     String
-  topVenueIds      String[]
-  capturedAt       DateTime @default(now())
+  id           String   @id @default(cuid())
+  neighborhood String
+  trendScore   Int
+  dominantVibe String
+  topVenueIds  Json
+  capturedAt   DateTime @default(now())
 }
 
 model ReportFlag {
-  id            String   @id @default(cuid())
-  liveUpdateId  String
-  reporterId    String
-  reason        String
-  createdAt     DateTime @default(now())
-  reporter      User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  liveUpdateId String
+  reporterId   String
+  reason       String
+  createdAt    DateTime @default(now())
+
+  reporter     User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([reporterId])
 }
 
 model AuditLog {
-  id          String   @id @default(cuid())
-  userId      String
-  action      String
-  entityType  String
-  entityId    String
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

@@ -6,10 +6,31 @@
   color-scheme: dark;
 }
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   @apply bg-[#0b0f1a] text-white antialiased;
-  background-image: radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.18), transparent 30%),
+  background-image:
+    radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.18), transparent 30%),
     radial-gradient(circle at 100% 0%, rgba(34, 211, 238, 0.12), transparent 35%);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
 }
 
 .glass {
@@ -22,7 +43,7 @@ body {
   border: 1px solid rgba(148, 163, 184, 0.2);
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.55));
   box-shadow: 0 10px 30px rgba(2, 6, 23, 0.35);
-  @apply bg-night-bg text-white antialiased;
+  @apply text-white antialiased;
 }
 
 .glow-border {
