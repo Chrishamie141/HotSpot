@@ -79,6 +79,8 @@ export function ProfilePostGrid({
           </button>
         ))}
       </div>
+      {visiblePosts.length === 0 && activeTab === "saved" ? <p className="text-sm text-zinc-400">No saved posts yet.</p> : null}
+      {visiblePosts.length === 0 && activeTab === "tagged" ? <p className="text-sm text-zinc-400">No tagged posts yet.</p> : null}
 
       {selectedPost ? (
         <div className="fixed inset-0 z-50 flex items-end bg-black/70 p-0 md:items-center md:justify-center md:p-6">
