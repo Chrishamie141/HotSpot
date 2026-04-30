@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { setAuthCookie } from "@/lib/social-auth";
+import { setSessionCookie } from "@/lib/auth-session";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -26,26 +26,11 @@ export async function POST(request: Request) {
       email,
       displayName: displayName || null,
       passwordHash,
-      socialProfile: {
-        create: {
-          handle,
-          displayName: displayName || "User",
-          onboardingCompleted: false,
-          onboarding: {},
-        },
-      },
-    },
-    include: { socialProfile: true },
-  });
-
-  await setAuthCookie(user.id);
-
-  return NextResponse.json({
-    user: {
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName,
-      onboardingCompleted: user.socialProfile?.onboardingCompleted ?? false,
+      provider: "credentials",
+      socialProfile: { create: { handle, displayName: displayName || "User", onboardingCompleted: false, onboarding: {} } },
     },
   });
+
+  await setSessionCookie(user.id, false);
+  return NextResponse.json({ ok: true }, { status: 201 });
 }

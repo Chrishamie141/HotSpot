@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/social-auth";
+import { getCurrentUserFromSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserFromSession();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const [postsCount, followers, following, posts] = await Promise.all([
@@ -50,7 +50,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserFromSession();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await request.json();
 

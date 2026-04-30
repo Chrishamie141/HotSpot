@@ -16,14 +16,14 @@ export default function OnboardingPage() {
   useEffect(() => {
     async function loadSession() {
       try {
-        const session = await fetch("/api/social/session").then((res) => res.json());
-        if (session.onboardingCompleted) {
+        const session = await fetch("/api/auth/me").then((res) => res.json());
+        if (session.user?.onboardingCompleted) {
           window.location.href = "/profile";
           return;
         }
 
-        setDisplayName(session.displayName ?? "");
-        setHandle(session.handle ?? "");
+        setDisplayName(session.user?.displayName ?? "");
+        setHandle(session.user?.socialProfile?.handle ?? "");
         setStatus("ready");
       } catch (error) {
         setStatus("error");

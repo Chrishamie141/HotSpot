@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/social-auth";
+import { getCurrentUserFromSession } from "@/lib/auth-session";
 
 export async function GET() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserFromSession();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   return NextResponse.json({
