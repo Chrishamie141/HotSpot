@@ -117,7 +117,7 @@ export function ProfilePageContent() {
         profile={profile}
         onUpdateProfile={updateProfile}
         onLogout={async () => {
-          await fetch("/api/social/logout", { method: "POST" });
+          await fetch("/api/auth/logout", { method: "POST" });
           window.location.href = "/login";
         }}
       />

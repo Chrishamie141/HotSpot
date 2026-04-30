@@ -6,9 +6,12 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   return NextResponse.json({
-    id: user.id,
-    displayName: user.socialProfile?.displayName ?? user.displayName ?? "User",
-    handle: user.socialProfile?.handle ?? "user",
-    avatarUrl: user.socialProfile?.avatarUrl ?? null,
+    user: {
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      onboardingCompleted: user.socialProfile?.onboardingCompleted ?? false,
+      socialProfile: user.socialProfile,
+    },
   });
 }

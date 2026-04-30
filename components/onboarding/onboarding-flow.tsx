@@ -49,7 +49,7 @@ export function OnboardingFlow() {
 
     const stored = loadOnboardingState();
     if (stored.onboardingComplete) {
-      router.replace("/explore");
+      router.replace("/profile");
       return;
     }
 
@@ -76,7 +76,7 @@ export function OnboardingFlow() {
     setData((current) => ({ ...current, currentStep: Math.max(current.currentStep - 1, 0) }));
   };
 
-  const finish = () => {
+  const finish = async () => {
     const finalizedCity = data.city.trim() ? data.city : DEFAULT_CITY;
     const finalized = {
       ...data,
@@ -87,9 +87,9 @@ export function OnboardingFlow() {
 
     setData(finalized);
     persistOnboardingState(finalized);
-
+    await fetch("/api/social/profile", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ onboardingCompleted: true, onboarding: finalized }) });
     window.setTimeout(() => {
-      router.replace("/explore?welcome=1");
+      router.replace("/profile");
     }, 550);
   };
 
@@ -103,7 +103,7 @@ export function OnboardingFlow() {
     };
     setData(skipped);
     persistOnboardingState(skipped);
-    router.replace("/explore");
+    router.replace("/profile");
   };
 
   if (!hydrated) {

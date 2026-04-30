@@ -11,6 +11,7 @@ model User {
   id               String          @id @default(cuid())
   email            String          @unique
   displayName      String?
+  passwordHash     String?
   role             String          @default("USER")
   reputationScore  Int             @default(50)
   homeNeighborhood String?
@@ -45,7 +46,9 @@ model SocialProfile {
   showVideos           Boolean  @default(true)
   showNightlifeEvents  Boolean  @default(true)
   showFoodSpots        Boolean  @default(true)
-  preferredVibes       Json     @default("[]")
+  preferredVibes       Json?
+  onboarding           Json?
+  onboardingCompleted  Boolean  @default(false)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
