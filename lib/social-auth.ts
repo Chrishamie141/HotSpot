@@ -1,16 +1,51 @@
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 
-const COOKIE_NAME = "hotspot_user_id";
+export const AUTH_COOKIE_NAME = "hotspot_user_id";
 
-export async function getOrCreateLocalUser() {
+function getAuthCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    path: "/",
+    secure: process.env.NODE_ENV === "production",
+  };
+}
+
+export async function setAuthCookie(userId: string) {
   const cookieStore = await cookies();
-  const cookieUserId = cookieStore.get(COOKIE_NAME)?.value;
+  cookieStore.set(AUTH_COOKIE_NAME, userId, getAuthCookieOptions());
+}
 
-  if (cookieUserId) {
-    const existing = await prisma.user.findUnique({ where: { id: cookieUserId }, include: { socialProfile: true } });
-    if (existing) return existing;
-  }
+export async function clearAuthCookie() {
+  const cookieStore = await cookies();
+  cookieStore.set(AUTH_COOKIE_NAME, "", {
+    ...getAuthCookieOptions(),
+    maxAge: 0,
+  });
+}
+
+export async function getCurrentUser() {
+  const cookieStore = await cookies();
+  const cookieUserId = cookieStore.get(AUTH_COOKIE_NAME)?.value;
+  if (!cookieUserId) return null;
+
+  return prisma.user.findUnique({
+    where: { id: cookieUserId },
+    include: { socialProfile: true },
+  });
+}
+
+export async function requireCurrentUser() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  return user;
+}
+
+// retained for development compatibility only
+export async function getOrCreateLocalUser() {
+  const existing = await getCurrentUser();
+  if (existing) return existing;
 
   const timestamp = Date.now();
   const handle = `user${timestamp}`;
@@ -27,13 +62,12 @@ export async function getOrCreateLocalUser() {
           bio: "",
           cityLine: "",
           onboardingCompleted: false,
-          preferredNightlifeTypes: [],
         },
       },
     },
     include: { socialProfile: true },
   });
 
-  cookieStore.set(COOKIE_NAME, created.id, { httpOnly: true, sameSite: "lax", path: "/" });
+  await setAuthCookie(created.id);
   return created;
 }

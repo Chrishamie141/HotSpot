@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { getOrCreateLocalUser } from "@/lib/social-auth";
+import { getCurrentUser } from "@/lib/social-auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const user = await getOrCreateLocalUser();
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const posts = await prisma.socialPost.findMany({
     orderBy: { createdAt: "desc" },
@@ -52,7 +53,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await getOrCreateLocalUser();
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await request.json();
 
   const created = await prisma.socialPost.create({

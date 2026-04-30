@@ -96,7 +96,7 @@ export function ProfileSettingsScreen({
         {message ? <p className="mt-3 text-xs text-cyan-200">{message}</p> : null}
         {panel === "account" ? (
           <div className="mt-3 space-y-2 rounded-xl border border-white/10 p-3 text-sm">
-            <p className="text-zinc-300">Local account mode</p>
+            <p className="text-zinc-300">Account settings</p>
             <p className="text-zinc-400">Email: {profile?.email || "Not set"}</p>
             <p className="text-zinc-400">Account ID: {profile?.accountId}</p>
             <input value={accountDisplayName} onChange={(e) => setAccountDisplayName(e.target.value)} className="w-full rounded-lg border border-white/15 bg-[#0c1120] px-2 py-1.5" />

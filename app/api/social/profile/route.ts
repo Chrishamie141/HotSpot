@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { getOrCreateLocalUser } from "@/lib/social-auth";
+import { getCurrentUser } from "@/lib/social-auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const user = await getOrCreateLocalUser();
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const [postsCount, followers, following, posts] = await Promise.all([
     prisma.socialPost.count({ where: { userId: user.id } }),
@@ -27,10 +28,6 @@ export async function GET() {
       showNightlifeEvents: user.socialProfile?.showNightlifeEvents ?? true,
       showFoodSpots: user.socialProfile?.showFoodSpots ?? true,
       preferredVibes: user.socialProfile?.preferredVibes ?? [],
-      onboardingCompleted: user.socialProfile?.onboardingCompleted ?? false,
-      preferredCity: user.socialProfile?.preferredCity ?? "",
-      preferredNightlifeTypes: user.socialProfile?.preferredNightlifeTypes ?? [],
-      ageRange: user.socialProfile?.ageRange ?? "",
       followers,
       following,
       postsCount,
@@ -53,7 +50,8 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const user = await getOrCreateLocalUser();
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await request.json();
 
   const handle = body.username ? String(body.username).replace(/^@/, "").trim().toLowerCase() : undefined;
@@ -74,10 +72,8 @@ export async function PATCH(request: Request) {
       showNightlifeEvents: body.showNightlifeEvents,
       showFoodSpots: body.showFoodSpots,
       preferredVibes: body.preferredVibes ?? [],
-      onboardingCompleted: Boolean(body.onboardingCompleted),
-      preferredCity: typeof body.preferredCity === "string" ? body.preferredCity : null,
-      preferredNightlifeTypes: Array.isArray(body.preferredNightlifeTypes) ? body.preferredNightlifeTypes : [],
-      ageRange: typeof body.ageRange === "string" ? body.ageRange : null,
+      onboarding: body.onboarding ?? {},
+      onboardingCompleted: typeof body.onboardingCompleted === "boolean" ? body.onboardingCompleted : false,
     },
     update: {
       handle: handle,
@@ -91,10 +87,8 @@ export async function PATCH(request: Request) {
       showNightlifeEvents: body.showNightlifeEvents,
       showFoodSpots: body.showFoodSpots,
       preferredVibes: body.preferredVibes,
-      onboardingCompleted: typeof body.onboardingCompleted === "boolean" ? body.onboardingCompleted : undefined,
-      preferredCity: typeof body.preferredCity === "string" ? body.preferredCity : undefined,
-      preferredNightlifeTypes: Array.isArray(body.preferredNightlifeTypes) ? body.preferredNightlifeTypes : undefined,
-      ageRange: typeof body.ageRange === "string" ? body.ageRange : undefined,
+      onboarding: body.onboarding,
+      onboardingCompleted: body.onboardingCompleted,
     },
   });
 
