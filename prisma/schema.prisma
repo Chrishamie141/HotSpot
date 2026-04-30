@@ -12,6 +12,8 @@ model User {
   email            String          @unique
   displayName      String?
   passwordHash     String?
+  provider         String?
+  providerAccountId String?
   role             String          @default("USER")
   reputationScore  Int             @default(50)
   homeNeighborhood String?

@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { setAuthCookie } from "@/lib/social-auth";
+import { setSessionCookie } from "@/lib/auth-session";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -9,18 +9,11 @@ export async function POST(request: Request) {
   const password = typeof body.password === "string" ? body.password : "";
 
   const user = await prisma.user.findUnique({ where: { email }, include: { socialProfile: true } });
-  if (!user?.passwordHash) return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
+  if (!user?.passwordHash) return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
 
   const matches = await bcrypt.compare(password, user.passwordHash);
-  if (!matches) return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
+  if (!matches) return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
 
-  await setAuthCookie(user.id);
-  return NextResponse.json({
-    user: {
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName,
-      onboardingCompleted: user.socialProfile?.onboardingCompleted ?? false,
-    },
-  });
+  await setSessionCookie(user.id);
+  return NextResponse.json({ ok: true });
 }

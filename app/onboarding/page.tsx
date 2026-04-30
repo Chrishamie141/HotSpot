@@ -1,10 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const NIGHTLIFE_OPTIONS = ["bars", "lounges", "clubs", "restaurants", "live music"] as const;
 
 export default function OnboardingPage() {
+  const router = useRouter();
   const [displayName, setDisplayName] = useState("");
   const [handle, setHandle] = useState("");
   const [preferredCity, setPreferredCity] = useState("");
@@ -16,14 +18,24 @@ export default function OnboardingPage() {
   useEffect(() => {
     async function loadSession() {
       try {
-        const session = await fetch("/api/social/session").then((res) => res.json());
-        if (session.onboardingCompleted) {
-          window.location.href = "/profile";
+        const meRes = await fetch("/api/auth/me");
+        if (meRes.status === 401) {
+          router.replace("/login");
+          return;
+        }
+        if (!meRes.ok) throw new Error("Unable to load account session.");
+
+        const session = await meRes.json();
+        if (session.user?.onboardingCompleted) {
+          router.replace("/profile");
           return;
         }
 
-        setDisplayName(session.displayName ?? "");
-        setHandle(session.handle ?? "");
+        setDisplayName(session.user?.socialProfile?.displayName ?? session.user?.displayName ?? "");
+        setHandle(session.user?.socialProfile?.handle ?? "");
+        setPreferredCity(session.user?.socialProfile?.preferredCity ?? "");
+        setAgeRange(session.user?.socialProfile?.ageRange ?? "");
+        setPreferredNightlifeTypes(Array.isArray(session.user?.socialProfile?.preferredNightlifeTypes) ? session.user.socialProfile.preferredNightlifeTypes : []);
         setStatus("ready");
       } catch (error) {
         setStatus("error");
@@ -58,7 +70,10 @@ export default function OnboardingPage() {
         throw new Error(`Save failed with status ${response.status}`);
       }
 
-      window.location.href = "/profile";
+      const meRes = await fetch("/api/auth/me");
+      if (!meRes.ok) throw new Error("Unable to confirm onboarding state.");
+      const me = await meRes.json();
+      router.replace(me.user?.onboardingCompleted ? "/profile" : "/onboarding");
     } catch (error) {
       setStatus("error");
       setErrorMessage(error instanceof Error ? error.message : "Unable to save onboarding.");
